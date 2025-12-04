@@ -34,3 +34,27 @@ export interface SSHForwardResult {
 	message: string;
 	config?: SSHForwardConfig;
 }
+
+export interface SSHLocalForward {
+	localHost?: string;
+	localPort: number;
+	remoteHost: string;
+	remotePort: number;
+}
+
+export interface SSHConfigExtraOption {
+	key: string;
+	value: string;
+}
+
+export interface SSHConfigEntry {
+	alias: string;
+	hostName: string;
+	user?: string;
+	port?: number;
+	identityFile?: string;
+	proxyJump?: string;
+	forwardAgent?: boolean;
+	localForwards?: SSHLocalForward[];
+	extras?: SSHConfigExtraOption[];
+}
