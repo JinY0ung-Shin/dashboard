@@ -1,34 +1,34 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import type { PortInfo } from '$lib/types';
+	import { onMount } from "svelte";
+	import type { PortInfo } from "$lib/types";
 
 	let ports: PortInfo[] = [];
 	let loading = false;
-	let error = '';
-	let searchTerm = '';
+	let error = "";
+	let searchTerm = "";
 	let availablePort: number | null = null;
 	let findingPort = false;
 	let editingPort: number | null = null;
 	let editForm = {
-		description: '',
-		url: ''
+		description: "",
+		url: "",
 	};
-	let success = '';
+	let success = "";
 
 	async function loadPorts() {
 		loading = true;
-		error = '';
+		error = "";
 		try {
-			const response = await fetch('/api/ports');
+			const response = await fetch("/api/ports");
 			const data = await response.json();
 
 			if (data.success) {
 				ports = data.ports;
 			} else {
-				error = data.error || '포트 정보를 가져오는데 실패했습니다';
+				error = data.error || "포트 정보를 가져오는데 실패했습니다";
 			}
 		} catch (e) {
-			error = '서버 연결에 실패했습니다';
+			error = "서버 연결에 실패했습니다";
 		} finally {
 			loading = false;
 		}
@@ -38,20 +38,24 @@
 		findingPort = true;
 		availablePort = null;
 		try {
-			const response = await fetch('/api/ports', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'find-available', startPort: 3000, endPort: 65535 })
+			const response = await fetch("/api/ports", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					action: "find-available",
+					startPort: 3000,
+					endPort: 65535,
+				}),
 			});
 			const data = await response.json();
 
 			if (data.success) {
 				availablePort = data.port;
 			} else {
-				error = data.error || '사용 가능한 포트를 찾는데 실패했습니다';
+				error = data.error || "사용 가능한 포트를 찾는데 실패했습니다";
 			}
 		} catch (e) {
-			error = '서버 연결에 실패했습니다';
+			error = "서버 연결에 실패했습니다";
 		} finally {
 			findingPort = false;
 		}
@@ -59,73 +63,73 @@
 
 	function openPort(port: PortInfo) {
 		const url = port.url || `http://localhost:${port.port}`;
-		window.open(url, '_blank');
+		window.open(url, "_blank");
 	}
 
 	function startEditPort(port: PortInfo) {
 		editingPort = port.port;
-		editForm.description = port.description || '';
+		editForm.description = port.description || "";
 		editForm.url = port.url || `http://localhost:${port.port}`;
 	}
 
 	function cancelEdit() {
 		editingPort = null;
-		editForm.description = '';
-		editForm.url = '';
+		editForm.description = "";
+		editForm.url = "";
 	}
 
 	async function saveDescription(port: number) {
-		error = '';
-		success = '';
+		error = "";
+		success = "";
 
 		try {
-			const response = await fetch('/api/port-descriptions', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+			const response = await fetch("/api/port-descriptions", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					port,
 					description: editForm.description,
-					url: editForm.url
-				})
+					url: editForm.url,
+				}),
 			});
 			const data = await response.json();
 
 			if (data.success) {
-				success = '포트 설명이 저장되었습니다';
+				success = "포트 설명이 저장되었습니다";
 				cancelEdit();
 				await loadPorts();
-				setTimeout(() => (success = ''), 3000);
+				setTimeout(() => (success = ""), 3000);
 			} else {
-				error = data.error || '저장에 실패했습니다';
+				error = data.error || "저장에 실패했습니다";
 			}
 		} catch (e) {
-			error = '서버 연결에 실패했습니다';
+			error = "서버 연결에 실패했습니다";
 		}
 	}
 
 	async function deleteDescription(port: number) {
-		if (!confirm('이 포트의 설명을 삭제하시겠습니까?')) return;
+		if (!confirm("이 포트의 설명을 삭제하시겠습니까?")) return;
 
-		error = '';
-		success = '';
+		error = "";
+		success = "";
 
 		try {
-			const response = await fetch('/api/port-descriptions', {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ port })
+			const response = await fetch("/api/port-descriptions", {
+				method: "DELETE",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ port }),
 			});
 			const data = await response.json();
 
 			if (data.success) {
-				success = '포트 설명이 삭제되었습니다';
+				success = "포트 설명이 삭제되었습니다";
 				await loadPorts();
-				setTimeout(() => (success = ''), 3000);
+				setTimeout(() => (success = ""), 3000);
 			} else {
-				error = data.error || '삭제에 실패했습니다';
+				error = data.error || "삭제에 실패했습니다";
 			}
 		} catch (e) {
-			error = '서버 연결에 실패했습니다';
+			error = "서버 연결에 실패했습니다";
 		}
 	}
 
@@ -138,9 +142,18 @@
 			(p) =>
 				p.port.toString().includes(searchTerm) ||
 				p.protocol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				(p.service && p.service.toLowerCase().includes(searchTerm.toLowerCase())) ||
-				(p.processName && p.processName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-				(p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+				(p.service &&
+					p.service
+						.toLowerCase()
+						.includes(searchTerm.toLowerCase())) ||
+				(p.processName &&
+					p.processName
+						.toLowerCase()
+						.includes(searchTerm.toLowerCase())) ||
+				(p.description &&
+					p.description
+						.toLowerCase()
+						.includes(searchTerm.toLowerCase())),
 		)
 		.sort((a, b) => {
 			// 설명이 있는 포트를 먼저 표시
@@ -154,158 +167,412 @@
 		});
 </script>
 
-<div class="bg-white rounded-lg p-8 shadow-sm">
-	<div class="flex justify-between items-center mb-6">
-		<h2 class="text-2xl font-semibold text-slate-700">현재 열려있는 포트</h2>
-		<div class="flex gap-2">
+<div class="space-y-8">
+	<!-- Header & Stats -->
+	<div class="flex flex-col md:flex-row gap-6 items-end justify-between">
+		<div>
+			<h2
+				class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400 mb-2"
+			>
+				Network Overview
+			</h2>
+			<p class="text-slate-400">
+				Monitor and manage your active server ports
+			</p>
+		</div>
+
+		<div class="flex gap-4">
+			<div
+				class="glass px-6 py-3 rounded-xl flex flex-col items-center min-w-[100px]"
+			>
+				<span
+					class="text-xs text-slate-400 uppercase tracking-wider font-semibold"
+					>Total</span
+				>
+				<span class="text-2xl font-bold text-white">{ports.length}</span
+				>
+			</div>
+			<div
+				class="glass px-6 py-3 rounded-xl flex flex-col items-center min-w-[100px]"
+			>
+				<span
+					class="text-xs text-slate-400 uppercase tracking-wider font-semibold"
+					>Open</span
+				>
+				<span class="text-2xl font-bold text-green-400"
+					>{ports.filter((p) => p.state === "open").length}</span
+				>
+			</div>
+		</div>
+	</div>
+
+	<!-- Controls -->
+	<div
+		class="glass-card flex flex-col md:flex-row gap-4 justify-between items-center"
+	>
+		<div class="relative w-full md:w-96">
+			<div
+				class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+			>
+				<svg
+					class="h-5 w-5 text-slate-500"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</div>
+			<input
+				type="text"
+				placeholder="Search ports, services..."
+				bind:value={searchTerm}
+				class="glass-input w-full pl-10"
+			/>
+		</div>
+
+		<div class="flex gap-3 w-full md:w-auto">
 			<button
 				on:click={findAvailablePort}
 				disabled={findingPort}
-				class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-60 disabled:cursor-not-allowed font-medium transition"
+				class="glass-btn-secondary flex-1 md:flex-none flex items-center justify-center gap-2 disabled:opacity-50"
 			>
-				{findingPort ? '검색 중...' : '사용 가능한 포트 찾기'}
+				{#if findingPort}
+					<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+						<circle
+							class="opacity-25"
+							cx="12"
+							cy="12"
+							r="10"
+							stroke="currentColor"
+							stroke-width="4"
+							fill="none"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+				{/if}
+				<span>Find Port</span>
 			</button>
 			<button
 				on:click={loadPorts}
 				disabled={loading}
-				class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed font-medium transition"
+				class="glass-btn-primary flex-1 md:flex-none flex items-center justify-center gap-2 disabled:opacity-50"
 			>
-				{loading ? '로딩 중...' : '새로고침'}
+				<svg
+					class="h-4 w-4 {loading ? 'animate-spin' : ''}"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+					/>
+				</svg>
+				<span>Refresh</span>
 			</button>
 		</div>
 	</div>
 
+	<!-- Notifications -->
 	{#if availablePort}
-		<div class="p-4 bg-green-50 text-green-800 border border-green-200 rounded mb-4">
-			사용 가능한 포트: <strong>{availablePort}</strong>
+		<div
+			class="p-4 bg-green-500/10 border border-green-500/20 text-green-200 rounded-lg flex items-center gap-3 animate-slide-up"
+		>
+			<svg
+				class="h-5 w-5 text-green-400"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+				/>
+			</svg>
+			<span
+				>Available Port Found: <strong class="text-white"
+					>{availablePort}</strong
+				></span
+			>
 		</div>
 	{/if}
 
 	{#if success}
-		<div class="p-4 bg-green-50 text-green-800 border border-green-200 rounded mb-4">{success}</div>
+		<div
+			class="p-4 bg-green-500/10 border border-green-500/20 text-green-200 rounded-lg animate-slide-up"
+		>
+			{success}
+		</div>
 	{/if}
 
 	{#if error}
-		<div class="p-4 bg-red-50 text-red-800 border border-red-200 rounded mb-4">{error}</div>
+		<div
+			class="p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-lg animate-slide-up"
+		>
+			{error}
+		</div>
 	{/if}
 
-	<div class="mb-4">
-		<input
-			type="text"
-			placeholder="포트 번호, 프로토콜, 프로세스, 설명으로 검색..."
-			bind:value={searchTerm}
-			class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-		/>
-	</div>
-
-	{#if loading}
-		<div class="text-center py-12 text-gray-500">포트 정보를 불러오는 중...</div>
-	{:else if filteredPorts.length === 0}
-		<div class="text-center py-12 text-gray-500">
-			{searchTerm ? '검색 결과가 없습니다' : '열려있는 포트가 없습니다'}
-		</div>
-	{:else}
-		<div class="overflow-x-auto">
-			<table class="w-full border-collapse">
-				<thead class="bg-gray-50">
-					<tr>
-						<th class="text-left p-4 font-semibold text-slate-700 border-b-2 border-gray-200">포트</th>
-						<th class="text-left p-4 font-semibold text-slate-700 border-b-2 border-gray-200">프로토콜</th>
-						<th class="text-left p-4 font-semibold text-slate-700 border-b-2 border-gray-200">상태</th>
-						<th class="text-left p-4 font-semibold text-slate-700 border-b-2 border-gray-200">프로세스</th>
-						<th class="text-left p-4 font-semibold text-slate-700 border-b-2 border-gray-200">설명</th>
-						<th class="text-left p-4 font-semibold text-slate-700 border-b-2 border-gray-200">작업</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each filteredPorts as port}
-						<tr class="hover:bg-gray-50 transition {editingPort === port.port ? 'bg-blue-50' : ''}">
-							<td class="p-4 border-b border-gray-200">
-								<button
-									on:click={() => openPort(port)}
-									class="text-blue-500 font-semibold font-mono underline hover:text-blue-700 transition"
-								>
-									{port.port}
-								</button>
-							</td>
-							<td class="p-4 border-b border-gray-200">{port.protocol.toUpperCase()}</td>
-							<td class="p-4 border-b border-gray-200">
-								<span class="px-3 py-1 rounded-full text-sm font-medium {port.state === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-									{port.state === 'open' ? '열림' : '닫힘'}
-								</span>
-							</td>
-							<td class="p-4 border-b border-gray-200">
-								{#if port.processName}
-									<span class="font-medium text-slate-700">{port.processName}</span>
-									{#if port.pid}
-										<span class="ml-1 text-gray-500 text-sm">(PID: {port.pid})</span>
-									{/if}
-								{:else}
-									-
-								{/if}
-							</td>
-							<td class="p-4 border-b border-gray-200">
-								{#if editingPort === port.port}
-									<div class="flex flex-col gap-2 min-w-[200px]">
-										<input
-											type="text"
-											placeholder="설명 입력..."
-											bind:value={editForm.description}
-											class="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-										/>
-										<input
-											type="text"
-											placeholder="URL (선택사항)"
-											bind:value={editForm.url}
-											class="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-										/>
-									</div>
-								{:else}
-									<span class="text-gray-600 italic">{port.description || '-'}</span>
-								{/if}
-							</td>
-							<td class="p-4 border-b border-gray-200">
-								{#if editingPort === port.port}
-									<div class="flex gap-2 flex-wrap">
-										<button
-											class="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition"
-											on:click={() => saveDescription(port.port)}
-										>
-											저장
-										</button>
-										<button
-											class="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-											on:click={cancelEdit}
-										>
-											취소
-										</button>
-									</div>
-								{:else}
-									<div class="flex gap-2 flex-wrap">
-										<button
-											class="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-											on:click={() => startEditPort(port)}
-										>
-											{port.description ? '편집' : '추가'}
-										</button>
-										{#if port.description}
-											<button
-												class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
-												on:click={() => deleteDescription(port.port)}
-											>
-												삭제
-											</button>
-										{/if}
-									</div>
-								{/if}
-							</td>
+	<!-- Data Table -->
+	<div class="glass-card overflow-hidden p-0">
+		{#if loading}
+			<div
+				class="text-center py-20 text-slate-400 flex flex-col items-center gap-4"
+			>
+				<div
+					class="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"
+				></div>
+				<p>Scanning ports...</p>
+			</div>
+		{:else if filteredPorts.length === 0}
+			<div class="text-center py-20 text-slate-400">
+				<svg
+					class="mx-auto h-12 w-12 text-slate-600 mb-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+					/>
+				</svg>
+				<p class="text-lg">
+					{searchTerm
+						? "No matching ports found"
+						: "No open ports detected"}
+				</p>
+			</div>
+		{:else}
+			<div class="overflow-x-auto">
+				<table class="w-full">
+					<thead>
+						<tr class="border-b border-white/5 bg-white/5">
+							<th
+								class="text-left py-4 px-6 font-semibold text-slate-300"
+								>Port</th
+							>
+							<th
+								class="text-left py-4 px-6 font-semibold text-slate-300"
+								>Protocol</th
+							>
+							<th
+								class="text-left py-4 px-6 font-semibold text-slate-300"
+								>Status</th
+							>
+							<th
+								class="text-left py-4 px-6 font-semibold text-slate-300"
+								>Process</th
+							>
+							<th
+								class="text-left py-4 px-6 font-semibold text-slate-300"
+								>Description</th
+							>
+							<th
+								class="text-left py-4 px-6 font-semibold text-slate-300"
+								>Actions</th
+							>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-		<div class="mt-4 text-right text-gray-500 text-sm">
-			총 {filteredPorts.length}개의 포트가 열려있습니다
-		</div>
-	{/if}
+					</thead>
+					<tbody class="divide-y divide-white/5">
+						{#each filteredPorts as port}
+							<tr
+								class="hover:bg-white/5 transition-colors {editingPort ===
+								port.port
+									? 'bg-blue-500/5'
+									: ''}"
+							>
+								<td class="py-4 px-6">
+									<button
+										on:click={() => openPort(port)}
+										class="font-mono text-blue-400 hover:text-blue-300 hover:underline transition-colors font-medium"
+									>
+										{port.port}
+									</button>
+								</td>
+								<td
+									class="py-4 px-6 text-slate-400 font-mono text-sm"
+									>{port.protocol.toUpperCase()}</td
+								>
+								<td class="py-4 px-6">
+									<span
+										class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {port.state ===
+										'open'
+											? 'bg-green-500/10 text-green-400 border border-green-500/20'
+											: 'bg-red-500/10 text-red-400 border border-red-500/20'}"
+									>
+										<span
+											class="w-1.5 h-1.5 rounded-full mr-1.5 {port.state ===
+											'open'
+												? 'bg-green-400 animate-pulse'
+												: 'bg-red-400'}"
+										></span>
+										{port.state === "open"
+											? "Active"
+											: "Closed"}
+									</span>
+								</td>
+								<td class="py-4 px-6">
+									{#if port.processName}
+										<div class="flex flex-col">
+											<span
+												class="text-slate-200 font-medium"
+												>{port.processName}</span
+											>
+											{#if port.pid}
+												<span
+													class="text-xs text-slate-500 font-mono"
+													>PID: {port.pid}</span
+												>
+											{/if}
+										</div>
+									{:else}
+										<span class="text-slate-600">-</span>
+									{/if}
+								</td>
+								<td class="py-4 px-6">
+									{#if editingPort === port.port}
+										<div
+											class="flex flex-col gap-2 min-w-[200px]"
+										>
+											<input
+												type="text"
+												placeholder="Description"
+												bind:value={
+													editForm.description
+												}
+												class="glass-input py-1.5 text-sm"
+											/>
+											<input
+												type="text"
+												placeholder="URL (optional)"
+												bind:value={editForm.url}
+												class="glass-input py-1.5 text-sm"
+											/>
+										</div>
+									{:else}
+										<span
+											class="text-slate-400 italic text-sm"
+											>{port.description || "-"}</span
+										>
+									{/if}
+								</td>
+								<td class="py-4 px-6">
+									{#if editingPort === port.port}
+										<div class="flex gap-2">
+											<button
+												class="p-1.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 transition"
+												on:click={() =>
+													saveDescription(port.port)}
+												title="Save"
+											>
+												<svg
+													class="h-4 w-4"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M5 13l4 4L19 7"
+													/>
+												</svg>
+											</button>
+											<button
+												class="p-1.5 rounded bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 transition"
+												on:click={cancelEdit}
+												title="Cancel"
+											>
+												<svg
+													class="h-4 w-4"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M6 18L18 6M6 6l12 12"
+													/>
+												</svg>
+											</button>
+										</div>
+									{:else}
+										<div class="flex gap-2">
+											<button
+												class="p-1.5 rounded hover:bg-white/5 text-slate-400 hover:text-blue-400 transition"
+												on:click={() =>
+													startEditPort(port)}
+												title="Edit"
+											>
+												<svg
+													class="h-4 w-4"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+													/>
+												</svg>
+											</button>
+											{#if port.description}
+												<button
+													class="p-1.5 rounded hover:bg-white/5 text-slate-400 hover:text-red-400 transition"
+													on:click={() =>
+														deleteDescription(
+															port.port,
+														)}
+													title="Delete"
+												>
+													<svg
+														class="h-4 w-4"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+														/>
+													</svg>
+												</button>
+											{/if}
+										</div>
+									{/if}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<div
+				class="px-6 py-4 border-t border-white/5 text-right text-slate-500 text-sm"
+			>
+				Showing {filteredPorts.length} ports
+			</div>
+		{/if}
+	</div>
 </div>
