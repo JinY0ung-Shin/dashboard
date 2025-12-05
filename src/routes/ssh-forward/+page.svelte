@@ -15,9 +15,10 @@
 
         let formData: SSHForwardConfig = {
                 name: "",
-                remoteHost: "",
+                remoteHost: "localhost",
                 remotePort: 0,
                 localPort: 0,
+                localBindAddress: "127.0.0.1",
                 sshUser: "",
                 sshHost: "",
                 sshPort: 22,
@@ -127,9 +128,10 @@
         function resetForm() {
                 formData = {
                         name: "",
-                        remoteHost: "",
+                        remoteHost: "localhost",
                         remotePort: 0,
                         localPort: 0,
+                        localBindAddress: "127.0.0.1",
                 sshUser: "",
                 sshHost: "",
                 sshPort: 22,

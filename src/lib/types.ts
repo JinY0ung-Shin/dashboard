@@ -21,6 +21,7 @@ export interface SSHForwardConfig {
 	remoteHost: string;
 	remotePort: number;
 	localPort: number;
+	localBindAddress?: string; // '127.0.0.1' (localhost only) or '0.0.0.0' (all interfaces)
 	sshUser: string;
 	sshHost: string;
 	sshPort: number;

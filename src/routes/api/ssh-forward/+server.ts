@@ -29,18 +29,19 @@ export const POST: RequestHandler = async ({ request }) => {
 		const result = await createSSHForward(config);
 
 		if (result.success) {
-			// SSH 포워딩 성공 시, 포트 설명이 제공되었다면 자동으로 저장
-			if (config.portDescription) {
-				try {
-					await setPortDescription(
-						config.localPort,
-						config.portDescription,
-						config.portUrl
-					);
-				} catch (error) {
-					console.error('Failed to save port description:', error);
-					// 포트 설명 저장 실패는 무시 (포워딩은 성공했으므로)
-				}
+			// SSH 포워딩 성공 시, 포트 설명 자동 생성 및 저장
+			const description = config.portDescription ||
+				`SSH Tunnel: ${config.name} (${config.remoteHost}:${config.remotePort})`;
+
+			try {
+				await setPortDescription(
+					config.localPort,
+					description,
+					config.portUrl
+				);
+			} catch (error) {
+				console.error('Failed to save port description:', error);
+				// 포트 설명 저장 실패는 무시 (포워딩은 성공했으므로)
 			}
 
 			return json(result);

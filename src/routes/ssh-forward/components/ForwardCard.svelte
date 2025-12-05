@@ -21,8 +21,11 @@
 	<div class="space-y-1 mb-2 text-xs">
 		<div class="flex items-center justify-between py-1 px-2 rounded bg-slate-800 border border-slate-700">
 			<span class="text-slate-500">Local</span>
-			<span class="font-mono text-blue-400">:{forward.localPort}</span>
+			<span class="font-mono text-blue-400">{forward.localBindAddress || '127.0.0.1'}:{forward.localPort}</span>
 		</div>
+		{#if forward.localBindAddress === '0.0.0.0'}
+			<div class="text-[10px] text-yellow-400 px-2">외부 접근 가능</div>
+		{/if}
 
 		<div class="flex items-center justify-between py-1 px-2 rounded bg-slate-800 border border-slate-700">
 			<span class="text-slate-500">Remote</span>

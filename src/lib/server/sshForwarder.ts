@@ -46,7 +46,8 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 
 		client.on('ready', () => {
 			// SSH 연결 성공
-			client.forwardIn('127.0.0.1', config.localPort, (err, port) => {
+			const bindAddress = config.localBindAddress || '127.0.0.1';
+			client.forwardIn(bindAddress, config.localPort, (err, port) => {
 				if (err) {
 					client.end();
 					resolve({
@@ -59,9 +60,10 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 				const updatedConfig = { ...config, id, status: 'active' as const };
 				activeForwards.set(id, { config: updatedConfig, client, server: port });
 
+				const accessInfo = bindAddress === '0.0.0.0' ? '(외부 접근 가능)' : '(localhost만)';
 				resolve({
 					success: true,
-					message: `SSH 포트 포워딩 시작: ${config.localPort} -> ${config.remoteHost}:${config.remotePort}`,
+					message: `SSH 포트 포워딩 시작: ${bindAddress}:${config.localPort} -> ${config.remoteHost}:${config.remotePort} ${accessInfo}`,
 					config: updatedConfig
 				});
 			});
