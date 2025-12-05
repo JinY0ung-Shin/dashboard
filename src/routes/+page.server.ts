@@ -1,8 +1,8 @@
+import { env } from "$env/dynamic/private";
 import type { PageServerLoad } from "./$types";
-import { HOST_IP } from "$env/static/private";
 
 export const load: PageServerLoad = () => {
         return {
-                hostIp: HOST_IP || null,
+                hostIp: env.HOST_IP || null,
         };
 };

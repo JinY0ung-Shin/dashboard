@@ -4,9 +4,13 @@
 
         export let data: { hostIp?: string | null };
 
-        const hostBase = (data?.hostIp || "localhost").startsWith("http")
-                ? data.hostIp || "localhost"
-                : `http://${data?.hostIp || "localhost"}`;
+        const buildHostBase = (host?: string | null) => {
+                const target = host?.trim();
+                if (!target) return "http://localhost";
+                return target.startsWith("http") ? target.replace(/\/$/, "") : `http://${target}`;
+        };
+
+        let hostBase = buildHostBase(data?.hostIp);
 
         let ports: PortInfo[] = [];
 	let loading = false;
@@ -67,15 +71,35 @@
 		}
 	}
 
+        const resolvePortUrl = (port: PortInfo) => {
+                const defaultUrl = `${hostBase}:${port.port}`;
+                if (!port.url) return defaultUrl;
+
+                const rawUrl = port.url.trim();
+                const normalized = rawUrl.startsWith("http") ? rawUrl : `http://${rawUrl}`;
+
+                if (data?.hostIp && /localhost/i.test(normalized)) {
+                        try {
+                                const rewritten = new URL(normalized);
+                                rewritten.hostname = data.hostIp;
+                                return rewritten.toString();
+                        } catch (e) {
+                                console.error("Failed to rewrite port URL", e);
+                        }
+                }
+
+                return normalized;
+        };
+
         function openPort(port: PortInfo) {
-                const url = port.url || `${hostBase}:${port.port}`;
+                const url = resolvePortUrl(port);
                 window.open(url, "_blank");
         }
 
         function startEditPort(port: PortInfo) {
                 editingPort = port.port;
                 editForm.description = port.description || "";
-                editForm.url = port.url || `${hostBase}:${port.port}`;
+                editForm.url = resolvePortUrl(port);
         }
 
 	function cancelEdit() {
@@ -139,9 +163,11 @@
 		}
 	}
 
-	onMount(() => {
-		loadPorts();
-	});
+        onMount(() => {
+                const browserHost = typeof location !== "undefined" ? location.hostname : undefined;
+                hostBase = buildHostBase(data?.hostIp || browserHost || "localhost");
+                loadPorts();
+        });
 
 	$: filteredPorts = ports
 		.filter(
