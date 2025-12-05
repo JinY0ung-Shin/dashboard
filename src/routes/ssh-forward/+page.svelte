@@ -16,8 +16,8 @@
         let formData: SSHForwardConfig = {
                 name: "",
                 remoteHost: "localhost",
-                remotePort: 0,
-                localPort: 0,
+                remotePort: null as any,
+                localPort: null as any,
                 localBindAddress: "127.0.0.1",
                 sshUser: "",
                 sshHost: "",
@@ -129,8 +129,8 @@
                 formData = {
                         name: "",
                         remoteHost: "localhost",
-                        remotePort: 0,
-                        localPort: 0,
+                        remotePort: null as any,
+                        localPort: null as any,
                         localBindAddress: "127.0.0.1",
                 sshUser: "",
                 sshHost: "",

@@ -106,7 +106,7 @@
                                                         }
                                                         placeholder="8080"
                                                         required
-                                                        class="glass-input w-full"
+                                                        class="glass-input w-full [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                 />
                                         </div>
 
@@ -157,7 +157,7 @@
                                                         }
                                                         placeholder="3000"
                                                         required
-                                                        class="glass-input w-full"
+                                                        class="glass-input w-full [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                 />
                                         </div>
 
