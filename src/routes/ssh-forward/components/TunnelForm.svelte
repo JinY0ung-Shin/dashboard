@@ -28,156 +28,176 @@
                 Configure New Tunnel
         </h3>
         <form on:submit|preventDefault={onSubmit} class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="space-y-2">
-                                <label for="name" class="text-sm font-medium text-slate-300"
-                                        >Configuration Name</label
-                                >
-                                <input
-                                        id="name"
-                                        type="text"
-                                        bind:value={formData.name}
-                                        placeholder="e.g. Production API"
-                                        required
-                                        class="glass-input w-full"
-                                />
-                        </div>
-
-                        <div class="space-y-2">
-                                <label for="localPort" class="text-sm font-medium text-slate-300"
-                                        >Local Port</label
-                                >
-                                <input
-                                        id="localPort"
-                                        type="number"
-                                        bind:value={formData.localPort}
-                                        placeholder="e.g. 8080"
-                                        required
-                                        class="glass-input w-full"
-                                />
-                        </div>
-
-                        <div class="space-y-2">
-                                <label for="remoteHost" class="text-sm font-medium text-slate-300"
-                                        >Remote Host</label
-                                >
-                                <input
-                                        id="remoteHost"
-                                        type="text"
-                                        bind:value={formData.remoteHost}
-                                        placeholder="e.g. localhost"
-                                        required
-                                        class="glass-input w-full"
-                                />
-                        </div>
-
-                        <div class="space-y-2">
-                                <label for="remotePort" class="text-sm font-medium text-slate-300"
-                                        >Remote Port</label
-                                >
-                                <input
-                                        id="remotePort"
-                                        type="number"
-                                        bind:value={formData.remotePort}
-                                        placeholder="e.g. 3000"
-                                        required
-                                        class="glass-input w-full"
-                                />
-                        </div>
-
-                        <div class="space-y-2">
-                                <label for="sshAlias" class="text-sm font-medium text-slate-300"
-                                        >SSH Alias</label
-                                >
-                                <select
-                                        id="sshAlias"
-                                        class="glass-input w-full"
-                                        bind:value={selectedAlias}
-                                >
-                                        <option value="">Manual entry</option>
-                                        {#each availableAliases as alias}
-                                                <option value={alias.alias}>
-                                                        {alias.alias}
-                                                        {alias.hostName ? ` (${alias.hostName})` : ""}
-                                                </option>
-                                        {/each}
-                                </select>
-                                <div class="space-y-1">
-                                        <p class="text-xs text-slate-500">Loaded from ~/.ssh/config</p>
-                                        {#if selectedEntry?.proxyJump}
-                                                <div class="flex items-center gap-2 text-xs text-slate-300">
-                                                        <span class="px-2 py-1 rounded-full bg-slate-800/60 text-[11px] text-blue-300">ProxyJump</span>
-                                                        <span class="font-mono text-slate-200">{selectedEntry.proxyJump}</span>
-                                                </div>
-                                        {/if}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="rounded-xl border border-white/5 bg-slate-900/50 p-4 space-y-4">
+                                <div class="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                                        <span>Configuration</span>
+                                        <span class="h-px flex-1 mx-2 bg-white/5"></span>
+                                </div>
+                                <div class="space-y-2">
+                                        <label for="name" class="text-sm font-medium text-slate-300"
+                                                >Configuration Name</label
+                                        >
+                                        <input
+                                                id="name"
+                                                type="text"
+                                                bind:value={formData.name}
+                                                placeholder="e.g. Production API"
+                                                required
+                                                class="glass-input w-full"
+                                        />
+                                </div>
+                                <div class="space-y-2">
+                                        <label for="portDescription" class="text-sm font-medium text-slate-300"
+                                                >Description (Optional)</label
+                                        >
+                                        <input
+                                                id="portDescription"
+                                                type="text"
+                                                bind:value={formData.portDescription}
+                                                placeholder="e.g. API Server"
+                                                class="glass-input w-full"
+                                        />
+                                </div>
+                                <div class="space-y-2">
+                                        <label for="portUrl" class="text-sm font-medium text-slate-300"
+                                                >URL (Optional)</label
+                                        >
+                                        <input
+                                                id="portUrl"
+                                                type="text"
+                                                bind:value={formData.portUrl}
+                                                placeholder="e.g. http://localhost:8080"
+                                                class="glass-input w-full"
+                                        />
                                 </div>
                         </div>
 
-                        <div class="space-y-2">
-                                <label for="sshHost" class="text-sm font-medium text-slate-300"
-                                        >SSH Server</label
-                                >
-                                <input
-                                        id="sshHost"
-                                        type="text"
-                                        bind:value={formData.sshHost}
-                                        placeholder="e.g. ssh.example.com"
-                                        required
-                                        class="glass-input w-full"
-                                />
+                        <div class="rounded-xl border border-white/5 bg-slate-900/50 p-4 space-y-4">
+                                <div class="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                                        <span>Forward Target</span>
+                                        <span class="h-px flex-1 mx-2 bg-white/5"></span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div class="space-y-2">
+                                                <label for="localPort" class="text-sm font-medium text-slate-300"
+                                                        >Local Port</label
+                                                >
+                                                <input
+                                                        id="localPort"
+                                                        type="number"
+                                                        bind:value={formData.localPort}
+                                                        placeholder="e.g. 8080"
+                                                        required
+                                                        class="glass-input w-full"
+                                                />
+                                        </div>
+
+                                        <div class="space-y-2">
+                                                <label for="remoteHost" class="text-sm font-medium text-slate-300"
+                                                        >Remote Host</label
+                                                >
+                                                <input
+                                                        id="remoteHost"
+                                                        type="text"
+                                                        bind:value={formData.remoteHost}
+                                                        placeholder="e.g. localhost"
+                                                        required
+                                                        class="glass-input w-full"
+                                                />
+                                        </div>
+
+                                        <div class="space-y-2">
+                                                <label for="remotePort" class="text-sm font-medium text-slate-300"
+                                                        >Remote Port</label
+                                                >
+                                                <input
+                                                        id="remotePort"
+                                                        type="number"
+                                                        bind:value={formData.remotePort}
+                                                        placeholder="e.g. 3000"
+                                                        required
+                                                        class="glass-input w-full"
+                                                />
+                                        </div>
+                                </div>
                         </div>
 
-                        <div class="space-y-2">
-                                <label for="sshPort" class="text-sm font-medium text-slate-300"
-                                        >SSH Port</label
-                                >
-                                <input
-                                        id="sshPort"
-                                        type="number"
-                                        bind:value={formData.sshPort}
-                                        placeholder="Default: 22"
-                                        class="glass-input w-full"
-                                />
-                        </div>
+                        <div class="rounded-xl border border-white/5 bg-slate-900/50 p-4 space-y-4">
+                                <div class="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                                        <span>SSH Connection</span>
+                                        <span class="h-px flex-1 mx-2 bg-white/5"></span>
+                                </div>
+                                <div class="space-y-2">
+                                        <label for="sshAlias" class="text-sm font-medium text-slate-300"
+                                                >SSH Alias</label
+                                        >
+                                        <select
+                                                id="sshAlias"
+                                                class="glass-input w-full"
+                                                bind:value={selectedAlias}
+                                        >
+                                                <option value="">Manual entry</option>
+                                                {#each availableAliases as alias}
+                                                        <option value={alias.alias}>
+                                                                {alias.alias}
+                                                                {alias.hostName ? ` (${alias.hostName})` : ""}
+                                                        </option>
+                                                {/each}
+                                        </select>
+                                        <div class="space-y-1">
+                                                <p class="text-xs text-slate-500">Loaded from ~/.ssh/config</p>
+                                                {#if selectedEntry?.proxyJump}
+                                                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                                                                <span class="px-2 py-1 rounded-full bg-slate-800/60 text-[11px] text-blue-300">ProxyJump</span>
+                                                                <span class="font-mono text-slate-200">{selectedEntry.proxyJump}</span>
+                                                        </div>
+                                                {/if}
+                                        </div>
+                                </div>
 
-                        <div class="space-y-2">
-                                <label for="sshUser" class="text-sm font-medium text-slate-300"
-                                        >SSH User</label
-                                >
-                                <input
-                                        id="sshUser"
-                                        type="text"
-                                        bind:value={formData.sshUser}
-                                        placeholder="e.g. ubuntu"
-                                        required
-                                        class="glass-input w-full"
-                                />
-                        </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div class="space-y-2 md:col-span-2">
+                                                <label for="sshHost" class="text-sm font-medium text-slate-300"
+                                                        >SSH Server</label
+                                                >
+                                                <input
+                                                        id="sshHost"
+                                                        type="text"
+                                                        bind:value={formData.sshHost}
+                                                        placeholder="e.g. ssh.example.com"
+                                                        required
+                                                        class="glass-input w-full"
+                                                />
+                                        </div>
 
-                        <div class="space-y-2">
-                                <label for="portDescription" class="text-sm font-medium text-slate-300"
-                                        >Description (Optional)</label
-                                >
-                                <input
-                                        id="portDescription"
-                                        type="text"
-                                        bind:value={formData.portDescription}
-                                        placeholder="e.g. API Server"
-                                        class="glass-input w-full"
-                                />
-                        </div>
+                                        <div class="space-y-2">
+                                                <label for="sshPort" class="text-sm font-medium text-slate-300"
+                                                        >SSH Port</label
+                                                >
+                                                <input
+                                                        id="sshPort"
+                                                        type="number"
+                                                        bind:value={formData.sshPort}
+                                                        placeholder="Default: 22"
+                                                        class="glass-input w-full"
+                                                />
+                                        </div>
+                                </div>
 
-                        <div class="space-y-2">
-                                <label for="portUrl" class="text-sm font-medium text-slate-300"
-                                        >URL (Optional)</label
-                                >
-                                <input
-                                        id="portUrl"
-                                        type="text"
-                                        bind:value={formData.portUrl}
-                                        placeholder="e.g. http://localhost:8080"
-                                        class="glass-input w-full"
-                                />
+                                <div class="space-y-2">
+                                        <label for="sshUser" class="text-sm font-medium text-slate-300"
+                                                >SSH User</label
+                                        >
+                                        <input
+                                                id="sshUser"
+                                                type="text"
+                                                bind:value={formData.sshUser}
+                                                placeholder="e.g. ubuntu"
+                                                required
+                                                class="glass-input w-full"
+                                        />
+                                </div>
                         </div>
                 </div>
 
