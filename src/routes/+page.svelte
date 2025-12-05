@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from "svelte";
 	import type { PortInfo } from "$lib/types";
+	import { onMount } from "svelte";
 
         export let data: { hostIp?: string | null };
 
@@ -72,24 +72,14 @@
 	}
 
         const resolvePortUrl = (port: PortInfo) => {
-                const defaultUrl = `${hostBase}:${port.port}`;
-                if (!port.url) return defaultUrl;
+			const defaultUrl = `${hostBase}:${port.port}`;
+			if (!port.url) return defaultUrl;
 
-                const rawUrl = port.url.trim();
-                const normalized = rawUrl.startsWith("http") ? rawUrl : `http://${rawUrl}`;
+			const rawUrl = port.url.trim();
+			const normalized = rawUrl.startsWith("http") ? rawUrl : `http://${rawUrl}`;
 
-                if (data?.hostIp && /localhost/i.test(normalized)) {
-                        try {
-                                const rewritten = new URL(normalized);
-                                rewritten.hostname = data.hostIp;
-                                return rewritten.toString();
-                        } catch (e) {
-                                console.error("Failed to rewrite port URL", e);
-                        }
-                }
-
-                return normalized;
-        };
+			return defaultUrl
+		};
 
         function openPort(port: PortInfo) {
                 const url = resolvePortUrl(port);
