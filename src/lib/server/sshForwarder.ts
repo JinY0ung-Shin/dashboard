@@ -1,4 +1,7 @@
 import { Client } from 'ssh2';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
 import type { SSHForwardConfig, SSHForwardResult } from '$lib/types';
 
 interface ActiveForward {
@@ -11,6 +14,29 @@ const activeForwards = new Map<string, ActiveForward>();
 
 function generateId(): string {
 	return `fwd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function findSSHKey(): Buffer | undefined {
+	const sshDir = join(homedir(), '.ssh');
+	const keyFiles = [
+		'id_ed25519',
+		'id_rsa',
+		'id_ecdsa',
+		'id_dsa'
+	];
+
+	for (const keyFile of keyFiles) {
+		const keyPath = join(sshDir, keyFile);
+		if (existsSync(keyPath)) {
+			try {
+				return readFileSync(keyPath);
+			} catch (error) {
+				console.error(`Failed to read SSH key ${keyPath}:`, error);
+			}
+		}
+	}
+
+	return undefined;
 }
 
 export async function createSSHForward(config: SSHForwardConfig): Promise<SSHForwardResult> {
@@ -70,15 +96,29 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 
 		// SSH 연결 시작
 		try {
-			client.connect({
+			const privateKey = findSSHKey();
+			const connectOptions: any = {
 				host: config.sshHost,
 				port: config.sshPort,
 				username: config.sshUser,
-				// 실제 프로덕션에서는 privateKey 또는 password를 설정 파일에서 읽어와야 합니다
-				// 여기서는 ssh-agent 또는 기본 키를 사용한다고 가정
 				tryKeyboard: true,
 				readyTimeout: 10000
-			});
+			};
+
+			// SSH agent 사용 (Windows의 경우 pageant, Unix의 경우 SSH_AUTH_SOCK)
+			if (process.env.SSH_AUTH_SOCK) {
+				connectOptions.agent = process.env.SSH_AUTH_SOCK;
+			} else if (process.platform === 'win32') {
+				// Windows에서 pageant 사용 시도
+				connectOptions.agent = 'pageant';
+			}
+
+			// SSH 키 파일이 있으면 추가
+			if (privateKey) {
+				connectOptions.privateKey = privateKey;
+			}
+
+			client.connect(connectOptions);
 		} catch (error) {
 			resolve({
 				success: false,

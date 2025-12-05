@@ -189,160 +189,61 @@
 		});
 </script>
 
-<div class="space-y-4">
+<div class="space-y-2">
         <!-- Header & Stats -->
         <div class="flex flex-col md:flex-row gap-2 items-end justify-between">
-                <div class="space-y-1">
-                        <h2
-                                class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400"
-                        >
+                <div>
+                        <h2 class="text-lg font-semibold text-slate-200">
                                 Network Overview
                         </h2>
-                        <p class="text-slate-400 text-sm">
-                                Monitor and manage your active server ports
+                        <p class="text-slate-500 text-xs">
+                                {ports.length} ports ({ports.filter((p) => p.state === "open").length} open)
                         </p>
-                </div>
-
-                <div class="flex gap-2">
-                        <div
-                                class="glass px-4 py-2 rounded-lg flex flex-col items-center min-w-[90px]"
-                        >
-                                <span
-                                        class="text-xs text-slate-400 uppercase tracking-wider font-semibold"
-                                        >Total</span
-                                >
-                                <span class="text-xl font-bold text-white leading-tight">{ports.length}</span
-                                >
-                        </div>
-                        <div
-                                class="glass px-4 py-2 rounded-lg flex flex-col items-center min-w-[90px]"
-                        >
-                                <span
-                                        class="text-xs text-slate-400 uppercase tracking-wider font-semibold"
-                                        >Open</span
-                                >
-                                <span class="text-xl font-bold text-green-400 leading-tight"
-                                        >{ports.filter((p) => p.state === "open").length}</span
-                                >
-                        </div>
                 </div>
         </div>
 
 	<!-- Controls -->
-        <div
-                class="glass-card p-3 flex flex-col md:flex-row gap-2 justify-between items-center"
-        >
-		<div class="relative w-full md:w-96">
-			<div
-				class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-			>
-				<svg
-					class="h-5 w-5 text-slate-500"
-					viewBox="0 0 20 20"
-					fill="currentColor"
-				>
-					<path
-						fill-rule="evenodd"
-						d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-						clip-rule="evenodd"
-					/>
-				</svg>
-			</div>
-			<input
-				type="text"
-				placeholder="Search ports, services..."
-				bind:value={searchTerm}
-				class="glass-input w-full pl-10"
-			/>
-		</div>
+        <div class="glass-card flex flex-col md:flex-row gap-2 justify-between items-center">
+		<input
+			type="text"
+			placeholder="Search..."
+			bind:value={searchTerm}
+			class="glass-input w-full md:w-64"
+		/>
 
-                <div class="flex gap-2 w-full md:w-auto">
+                <div class="flex gap-1 w-full md:w-auto">
 			<button
 				on:click={findAvailablePort}
 				disabled={findingPort}
-				class="glass-btn-secondary flex-1 md:flex-none flex items-center justify-center gap-2 disabled:opacity-50"
+				class="glass-btn-secondary flex-1 md:flex-none disabled:opacity-50"
 			>
-				{#if findingPort}
-					<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
-						<circle
-							class="opacity-25"
-							cx="12"
-							cy="12"
-							r="10"
-							stroke="currentColor"
-							stroke-width="4"
-							fill="none"
-						></circle>
-						<path
-							class="opacity-75"
-							fill="currentColor"
-							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-						></path>
-					</svg>
-				{/if}
-				<span>Find Port</span>
+				Find Port
 			</button>
 			<button
 				on:click={loadPorts}
 				disabled={loading}
-				class="glass-btn-primary flex-1 md:flex-none flex items-center justify-center gap-2 disabled:opacity-50"
+				class="glass-btn-primary flex-1 md:flex-none disabled:opacity-50"
 			>
-				<svg
-					class="h-4 w-4 {loading ? 'animate-spin' : ''}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-					/>
-				</svg>
-				<span>Refresh</span>
+				Refresh
 			</button>
 		</div>
 	</div>
 
 	<!-- Notifications -->
 	{#if availablePort}
-                <div
-                        class="p-3 bg-green-500/10 border border-green-500/20 text-green-200 rounded-lg flex items-center gap-2 animate-slide-up"
-                >
-			<svg
-				class="h-5 w-5 text-green-400"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-				/>
-			</svg>
-			<span
-				>Available Port Found: <strong class="text-white"
-					>{availablePort}</strong
-				></span
-			>
+                <div class="p-2 bg-green-900 border border-green-700 text-green-200 rounded text-sm">
+			Available Port: <strong>{availablePort}</strong>
 		</div>
 	{/if}
 
 	{#if success}
-                <div
-                        class="p-3 bg-green-500/10 border border-green-500/20 text-green-200 rounded-lg animate-slide-up"
-                >
+                <div class="p-2 bg-green-900 border border-green-700 text-green-200 rounded text-sm">
 			{success}
 		</div>
 	{/if}
 
 	{#if error}
-                <div
-                        class="p-3 bg-red-500/10 border border-red-500/20 text-red-200 rounded-lg animate-slide-up"
-                >
+                <div class="p-2 bg-red-900 border border-red-700 text-red-200 rounded text-sm">
 			{error}
 		</div>
 	{/if}
@@ -350,236 +251,111 @@
 	<!-- Data Table -->
         <div class="glass-card overflow-hidden p-0">
                 {#if loading}
-                        <div
-                                class="text-center py-14 text-slate-400 flex flex-col items-center gap-3"
-                        >
-                                <div
-                                        class="w-9 h-9 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"
-                                ></div>
-                                <p>Scanning ports...</p>
+                        <div class="text-center py-8 text-slate-400 text-sm">
+                                Scanning ports...
                         </div>
                 {:else if filteredPorts.length === 0}
-                        <div class="text-center py-14 text-slate-400">
-                                <svg
-                                        class="mx-auto h-10 w-10 text-slate-600 mb-3"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                >
-                                        <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                </svg>
-                                <p class="text-base">
-                                        {searchTerm
-                                                ? "No matching ports found"
-                                                : "No open ports detected"}
-                                </p>
+                        <div class="text-center py-8 text-slate-500 text-sm">
+                                {searchTerm ? "No matching ports found" : "No open ports detected"}
                         </div>
                 {:else}
                         <div class="overflow-x-auto">
-                                <table class="w-full text-sm leading-tight">
+                                <table class="w-full text-xs">
                                         <thead>
-                                                <tr class="border-b border-white/5 bg-white/5">
-                                                        <th
-                                                                class="text-left py-2.5 px-3 font-semibold text-slate-300"
-                                                                >Port</th
-                                                        >
-                                                        <th
-                                                                class="text-left py-2.5 px-3 font-semibold text-slate-300"
-                                                                >Protocol</th
-                                                        >
-                                                        <th
-                                                                class="text-left py-2.5 px-3 font-semibold text-slate-300"
-                                                                >Status</th
-                                                        >
-                                                        <th
-                                                                class="text-left py-2.5 px-3 font-semibold text-slate-300"
-                                                                >Process</th
-                                                        >
-                                                        <th
-                                                                class="text-left py-2.5 px-3 font-semibold text-slate-300"
-                                                                >Description</th
-                                                        >
-                                                        <th
-                                                                class="text-left py-2.5 px-3 font-semibold text-slate-300"
-                                                                >Actions</th
-                                                        >
+                                                <tr class="border-b border-slate-800 bg-slate-900">
+                                                        <th class="text-left py-1 px-2 font-medium text-slate-400">Port</th>
+                                                        <th class="text-left py-1 px-2 font-medium text-slate-400">Protocol</th>
+                                                        <th class="text-left py-1 px-2 font-medium text-slate-400">Status</th>
+                                                        <th class="text-left py-1 px-2 font-medium text-slate-400">Process</th>
+                                                        <th class="text-left py-1 px-2 font-medium text-slate-400">Description</th>
+                                                        <th class="text-left py-1 px-2 font-medium text-slate-400">Actions</th>
                                                 </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-white/5">
+                                        <tbody class="divide-y divide-slate-800">
                                                 {#each filteredPorts as port}
-                                                        <tr
-								class="hover:bg-white/5 transition-colors {editingPort ===
-								port.port
-									? 'bg-blue-500/5'
-									: ''}"
-							>
-                                                                <td class="py-2 px-3">
+                                                        <tr class="hover:bg-slate-800/50 {editingPort === port.port ? 'bg-slate-800' : ''}">
+                                                                <td class="py-1 px-2">
                                                                         <button
 										on:click={() => openPort(port)}
-										class="font-mono text-blue-400 hover:text-blue-300 hover:underline transition-colors font-medium"
+										class="font-mono text-blue-400 hover:underline"
 									>
 										{port.port}
 									</button>
 								</td>
-                                                                <td
-                                                                        class="py-2 px-3 text-slate-400 font-mono text-sm"
-                                                                        >{port.protocol.toUpperCase()}</td
-                                                                >
-                                                                <td class="py-2 px-3">
-                                                                        <span
-										class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {port.state ===
-										'open'
-											? 'bg-green-500/10 text-green-400 border border-green-500/20'
-											: 'bg-red-500/10 text-red-400 border border-red-500/20'}"
-									>
-										<span
-											class="w-1.5 h-1.5 rounded-full mr-1.5 {port.state ===
-											'open'
-												? 'bg-green-400 animate-pulse'
-												: 'bg-red-400'}"
-										></span>
-										{port.state === "open"
-											? "Active"
-											: "Closed"}
+                                                                <td class="py-1 px-2 text-slate-400 font-mono">
+										{port.protocol.toUpperCase()}
+								</td>
+                                                                <td class="py-1 px-2">
+                                                                        <span class="text-xs {port.state === 'open' ? 'text-green-400' : 'text-red-400'}">
+										{port.state === "open" ? "Active" : "Closed"}
 									</span>
 								</td>
-                                                                <td class="py-2 px-3">
+                                                                <td class="py-1 px-2">
                                                                         {#if port.processName}
-										<div class="flex flex-col">
-											<span
-												class="text-slate-200 font-medium"
-												>{port.processName}</span
-											>
+										<div class="text-slate-300">
+											{port.processName}
 											{#if port.pid}
-												<span
-													class="text-xs text-slate-500 font-mono"
-													>PID: {port.pid}</span
-												>
+												<span class="text-slate-600">({port.pid})</span>
 											{/if}
 										</div>
 									{:else}
 										<span class="text-slate-600">-</span>
 									{/if}
 								</td>
-                                                                <td class="py-2 px-3">
+                                                                <td class="py-1 px-2">
                                                                         {#if editingPort === port.port}
-										<div
-											class="flex flex-col gap-2 min-w-[200px]"
-										>
+										<div class="flex flex-col gap-1 min-w-[150px]">
 											<input
 												type="text"
 												placeholder="Description"
-												bind:value={
-													editForm.description
-												}
-												class="glass-input py-1.5 text-sm"
+												bind:value={editForm.description}
+												class="glass-input"
 											/>
 											<input
 												type="text"
-												placeholder="URL (optional)"
+												placeholder="URL"
 												bind:value={editForm.url}
-												class="glass-input py-1.5 text-sm"
+												class="glass-input"
 											/>
 										</div>
 									{:else}
-										<span
-											class="text-slate-400 italic text-sm"
-											>{port.description || "-"}</span
-										>
+										<span class="text-slate-400">{port.description || "-"}</span>
 									{/if}
 								</td>
-                                                                <td class="py-2 px-3">
+                                                                <td class="py-1 px-2">
                                                                         {#if editingPort === port.port}
-                                                                                <div class="flex gap-2">
+                                                                                <div class="flex gap-1">
 											<button
-												class="p-1.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 transition"
-												on:click={() =>
-													saveDescription(port.port)}
+												class="px-1.5 py-0.5 text-xs rounded bg-green-800 text-green-200 hover:bg-green-700"
+												on:click={() => saveDescription(port.port)}
 												title="Save"
 											>
-												<svg
-													class="h-4 w-4"
-													fill="none"
-													viewBox="0 0 24 24"
-													stroke="currentColor"
-												>
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M5 13l4 4L19 7"
-													/>
-												</svg>
+												Save
 											</button>
 											<button
-												class="p-1.5 rounded bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 transition"
+												class="px-1.5 py-0.5 text-xs rounded bg-slate-700 text-slate-300 hover:bg-slate-600"
 												on:click={cancelEdit}
 												title="Cancel"
 											>
-												<svg
-													class="h-4 w-4"
-													fill="none"
-													viewBox="0 0 24 24"
-													stroke="currentColor"
-												>
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M6 18L18 6M6 6l12 12"
-													/>
-												</svg>
+												Cancel
 											</button>
 										</div>
 									{:else}
-										<div class="flex gap-2">
+										<div class="flex gap-1">
 											<button
-												class="p-1.5 rounded hover:bg-white/5 text-slate-400 hover:text-blue-400 transition"
-												on:click={() =>
-													startEditPort(port)}
+												class="px-1.5 py-0.5 text-xs rounded bg-slate-800 text-slate-400 hover:bg-slate-700"
+												on:click={() => startEditPort(port)}
 												title="Edit"
 											>
-												<svg
-													class="h-4 w-4"
-													fill="none"
-													viewBox="0 0 24 24"
-													stroke="currentColor"
-												>
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-													/>
-												</svg>
+												Edit
 											</button>
 											{#if port.description}
 												<button
-													class="p-1.5 rounded hover:bg-white/5 text-slate-400 hover:text-red-400 transition"
-													on:click={() =>
-														deleteDescription(
-															port.port,
-														)}
+													class="px-1.5 py-0.5 text-xs rounded bg-slate-800 text-slate-400 hover:bg-red-900 hover:text-red-300"
+													on:click={() => deleteDescription(port.port)}
 													title="Delete"
 												>
-													<svg
-														class="h-4 w-4"
-														fill="none"
-														viewBox="0 0 24 24"
-														stroke="currentColor"
-													>
-														<path
-															stroke-linecap="round"
-															stroke-linejoin="round"
-															stroke-width="2"
-															d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-														/>
-													</svg>
+													Del
 												</button>
 											{/if}
 										</div>
@@ -590,10 +366,8 @@
 					</tbody>
 				</table>
 			</div>
-                        <div
-                                class="px-4 py-2 border-t border-white/5 text-right text-slate-500 text-sm"
-                        >
-                                Showing {filteredPorts.length} ports
+                        <div class="px-2 py-1 border-t border-slate-800 text-right text-slate-600 text-xs">
+                                {filteredPorts.length} ports
                         </div>
                 {/if}
 	</div>

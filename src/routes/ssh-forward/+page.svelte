@@ -162,143 +162,76 @@
         });
 </script>
 
-<div class="space-y-8">
+<div class="space-y-2">
         <div class="flex items-center justify-between">
                 <div>
-                        <h2
-                                class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400 mb-2"
-                        >
+                        <h2 class="text-lg font-semibold text-slate-200">
                                 SSH Tunnels
                         </h2>
-                        <p class="text-slate-400">
-                                Securely forward local ports to remote servers
+                        <p class="text-slate-500 text-xs">
+                                {forwards.length} tunnels
                         </p>
                 </div>
-                <div class="flex gap-3">
+                <div class="flex gap-1">
                         <button
                                 on:click={() => (showForm = !showForm)}
-                                class="glass-btn-secondary flex items-center gap-2"
+                                class="glass-btn-secondary"
                         >
-                                {#if showForm}
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M6 18L18 6M6 6l12 12"
-                                                />
-                                        </svg>
-                                        <span>Cancel</span>
-                                {:else}
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 4v16m8-8H4"
-                                                />
-                                        </svg>
-                                        <span>New Tunnel</span>
-                                {/if}
+                                {showForm ? "Cancel" : "New Tunnel"}
                         </button>
                         <button
                                 on:click={loadForwards}
                                 disabled={loading}
-                                class="glass-btn-primary flex items-center gap-2 disabled:opacity-50"
+                                class="glass-btn-primary disabled:opacity-50"
                         >
-                                <svg class="h-4 w-4" class:animate-spin={loading} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                        />
-                                </svg>
-                                <span>Refresh</span>
+                                Refresh
                         </button>
                 </div>
         </div>
 
-        <div class="bg-slate-900/40 border border-white/5 rounded-xl p-3 md:p-4 shadow-lg shadow-black/20">
-                <div class="flex items-center justify-between gap-3 flex-wrap">
-                        <div class="flex items-center gap-2 text-sm text-slate-200">
-                                <svg class="h-4 w-4 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M12 11c1.657 0 3-1.79 3-4s-1.343-4-3-4-3 1.79-3 4 1.343 4 3 4zM5.5 21a6.5 6.5 0 0113 0"
-                                        />
-                                </svg>
-                                <span class="font-semibold">사용가능한 SSH aliases</span>
-                                <span class="text-slate-500 text-xs">{sshConfigPath || "~/.ssh/config"}</span>
+        <div class="glass-card">
+                <div class="flex items-center justify-between gap-2">
+                        <div class="text-xs text-slate-400">
+                                SSH aliases <span class="text-slate-600">{sshConfigPath || "~/.ssh/config"}</span>
                         </div>
-
                         <button
                                 on:click={loadConfigEntries}
                                 disabled={configLoading}
-                                class="text-xs px-3 py-1 rounded-lg border border-white/10 bg-white/5 text-slate-200 flex items-center gap-2 disabled:opacity-50"
+                                class="glass-btn-secondary disabled:opacity-50"
                         >
-                                <svg
-                                        class="h-3.5 w-3.5"
-                                        class:animate-spin={configLoading}
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                >
-                                        <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                        />
-                                </svg>
-                                <span>새로고침</span>
+                                Reload
                         </button>
                 </div>
 
                 {#if configError}
-                        <div class="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded-lg p-3 animate-slide-up">
+                        <div class="mt-2 text-xs text-red-300 bg-red-900 border border-red-700 rounded p-2">
                                 {configError}
                         </div>
                 {/if}
 
-                <div class="mt-3 space-y-3">
+                <div class="mt-2">
                         {#if configLoading && configEntries.length === 0}
-                                <div class="text-center py-4 text-slate-400 text-sm">
-                                        <div class="w-6 h-6 border-4 border-violet-400/30 border-t-violet-400 rounded-full animate-spin mx-auto mb-2"></div>
-                                        <p>Loading SSH aliases...</p>
+                                <div class="text-center py-4 text-slate-500 text-xs">
+                                        Loading...
                                 </div>
                         {:else if configEntries.length === 0}
-                                <div class="text-sm text-slate-400 flex items-center gap-2">
-                                        <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                                                />
-                                        </svg>
-                                        <span>등록된 alias가 없습니다. ~/.ssh/config의 Host 블록을 참고하세요.</span>
+                                <div class="text-xs text-slate-500">
+                                        No aliases found
                                 </div>
                         {:else}
-                                <div class="flex flex-wrap gap-2">
+                                <div class="flex flex-wrap gap-1">
                                         {#each configEntries as entry}
                                                 <button
-                                                        class="group px-3 py-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-left text-xs text-slate-200 transition"
+                                                        class="px-2 py-1 rounded border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300"
                                                         on:click={() => applyToTunnel(entry)}
-                                                        title={`Alias 적용: ${entry.alias}`}
+                                                        title={entry.alias}
                                                 >
-                                                        <div class="flex items-center gap-2">
-                                                                <span class="font-semibold text-white">{entry.alias}</span>
-                                                                {#if entry.proxyJump}
-                                                                        <span class="text-[10px] text-violet-200 bg-violet-500/20 border border-violet-400/30 rounded-full px-2 py-0.5">
-                                                                                ProxyJump → {entry.proxyJump}
-                                                                        </span>
-                                                                {/if}
-                                                        </div>
+                                                        {entry.alias}
+                                                        {#if entry.proxyJump}
+                                                                <span class="text-[10px] text-violet-400">*</span>
+                                                        {/if}
                                                         {#if entry.hostName}
-                                                                <div class="text-slate-400 text-[11px] mt-1">{entry.hostName}:{entry.port ?? 22}</div>
+                                                                <span class="text-slate-600 ml-1">{entry.hostName}</span>
                                                         {/if}
                                                 </button>
                                         {/each}
@@ -308,17 +241,13 @@
         </div>
 
         {#if success}
-                <div
-                        class="p-4 bg-green-500/10 border border-green-500/20 text-green-200 rounded-lg animate-slide-up"
-                >
+                <div class="p-2 bg-green-900 border border-green-700 text-green-200 rounded text-sm">
                         {success}
                 </div>
         {/if}
 
         {#if error}
-                <div
-                        class="p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-lg animate-slide-up"
-                >
+                <div class="p-2 bg-red-900 border border-red-700 text-red-200 rounded text-sm">
                         {error}
                 </div>
         {/if}
@@ -337,45 +266,21 @@
 
         <div>
                 {#if loading && forwards.length === 0}
-                        <div class="text-center py-20 text-slate-400 flex flex-col items-center gap-4">
-                                <div
-                                        class="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"
-                                ></div>
-                                <p>Loading tunnels...</p>
+                        <div class="text-center py-8 text-slate-500 text-sm">
+                                Loading...
                         </div>
                 {:else if forwards.length === 0}
-                        <div class="text-center py-20 text-slate-400 glass-card border-dashed border-2 border-slate-700/50">
-                                <div class="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <svg class="h-8 w-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                                                />
-                                        </svg>
-                                </div>
-                                <h3 class="text-lg font-medium text-slate-200 mb-1">No Active Tunnels</h3>
-                                <p class="text-slate-500 mb-6">
-                                        Create a new SSH tunnel to forward remote ports to your local machine.
-                                </p>
+                        <div class="text-center py-8 glass-card border-dashed border-slate-700">
+                                <p class="text-slate-500 text-sm mb-2">No active tunnels</p>
                                 <button
                                         on:click={() => (showForm = true)}
-                                        class="glass-btn-primary inline-flex items-center gap-2"
+                                        class="glass-btn-primary"
                                 >
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 4v16m8-8H4"
-                                                />
-                                        </svg>
                                         Create Tunnel
                                 </button>
                         </div>
                 {:else}
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {#each forwards as forward}
                                         <ForwardCard {forward} onStop={stopForward} />
                                 {/each}
