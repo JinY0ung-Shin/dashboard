@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import type { PortInfo } from "$lib/types";
 
-	let ports: PortInfo[] = [];
+        let ports: PortInfo[] = [];
 	let loading = false;
 	let error = "";
 	let searchTerm = "";
@@ -137,130 +137,142 @@
 		loadPorts();
 	});
 
-	$: filteredPorts = ports
-		.filter(
-			(p) =>
-				p.port.toString().includes(searchTerm) ||
-				p.protocol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				(p.service &&
-					p.service
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase())) ||
-				(p.processName &&
-					p.processName
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase())) ||
-				(p.description &&
-					p.description
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase())),
-		)
-		.sort((a, b) => {
-			// 설명이 있는 포트를 먼저 표시
-			const aHasDesc = a.description ? 1 : 0;
-			const bHasDesc = b.description ? 1 : 0;
-			if (aHasDesc !== bHasDesc) {
-				return bHasDesc - aHasDesc; // 설명 있는 것이 먼저
-			}
-			// 설명 유무가 같으면 포트 번호로 정렬
-			return a.port - b.port;
-		});
+        $: filteredPorts = ports
+                .filter(
+                        (p) =>
+                                p.port.toString().includes(searchTerm) ||
+                                p.protocol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                (p.service &&
+                                        p.service
+                                                .toLowerCase()
+                                                .includes(searchTerm.toLowerCase())) ||
+                                (p.processName &&
+                                        p.processName
+                                                .toLowerCase()
+                                                .includes(searchTerm.toLowerCase())) ||
+                                (p.description &&
+                                        p.description
+                                                .toLowerCase()
+                                                .includes(searchTerm.toLowerCase())),
+                )
+                .sort((a, b) => {
+                        const aHasDesc = a.description ? 1 : 0;
+                        const bHasDesc = b.description ? 1 : 0;
+
+                        if (aHasDesc !== bHasDesc) {
+                                return bHasDesc - aHasDesc;
+                        }
+
+                        return a.port - b.port;
+                });
+
+        $: totalPorts = ports.length;
+        $: openPorts = ports.filter((p) => p.state === "open").length;
+        $: describedPorts = ports.filter((p) => p.description).length;
 </script>
 
-<div class="space-y-6">
-        <!-- Header & Stats -->
-        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div>
-                        <h2 class="text-2xl font-semibold">포트 모니터링</h2>
-                        <p class="text-slate-500 text-sm">서버 포트 상태를 확인하고 관리하세요.</p>
-                </div>
-
-                <div class="flex gap-3">
-                        <div class="panel flex flex-col gap-1 w-28 text-center">
-                                <span class="text-xs text-slate-500">전체</span>
-                                <span class="text-xl font-semibold">{ports.length}</span>
-                        </div>
-                        <div class="panel flex flex-col gap-1 w-28 text-center">
-                                <span class="text-xs text-slate-500">Open</span>
-                                <span class="text-xl font-semibold text-green-600">
-                                        {ports.filter((p) => p.state === "open").length}
-                                </span>
-                        </div>
-                </div>
-        </div>
-
-        <!-- Controls -->
-        <div class="panel flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-                <div class="w-full md:w-96">
-                        <label class="sr-only" for="search">검색</label>
-                        <div class="relative">
-                                <div
-                                        class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"
-                                >
-                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                <path
-                                                        fill-rule="evenodd"
-                                                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                                                        clip-rule="evenodd"
-                                                />
-                                        </svg>
+<div class="space-y-5 lg:space-y-4">
+        <!-- Header, Filters, Stats -->
+        <div class="grid gap-3 xl:grid-cols-[1.8fr_1fr]">
+                <div class="panel flex flex-col gap-3">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                        <h2 class="text-2xl font-semibold">포트 모니터링</h2>
+                                        <p class="text-slate-500 text-sm">서버 포트 상태를 확인하고 관리하세요.</p>
                                 </div>
-                                <input
-                                        id="search"
-                                        type="text"
-                                        placeholder="포트, 서비스 검색"
-                                        bind:value={searchTerm}
-                                        class="input pl-9"
-                                />
+                                <div class="text-xs text-slate-500 sm:text-right">
+                                        총 {totalPorts}개 중 <span class="font-medium text-slate-700">{filteredPorts.length}</span>개 표시
+                                </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                                <div class="flex-1 min-w-[220px] max-w-md">
+                                        <label class="sr-only" for="search">검색</label>
+                                        <div class="relative">
+                                                <div
+                                                        class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"
+                                                >
+                                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path
+                                                                        fill-rule="evenodd"
+                                                                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                                                        clip-rule="evenodd"
+                                                                />
+                                                        </svg>
+                                                </div>
+                                                <input
+                                                        id="search"
+                                                        type="text"
+                                                        placeholder="포트, 서비스 검색"
+                                                        bind:value={searchTerm}
+                                                        class="input pl-9"
+                                                />
+                                        </div>
+                                </div>
+
+                                <div class="flex gap-2">
+                                        <button
+                                                on:click={findAvailablePort}
+                                                disabled={findingPort}
+                                                class="btn-secondary min-w-[120px] disabled:opacity-50"
+                                        >
+                                                {#if findingPort}
+                                                        <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                                                <circle
+                                                                        class="opacity-25"
+                                                                        cx="12"
+                                                                        cy="12"
+                                                                        r="10"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="4"
+                                                                        fill="none"
+                                                                ></circle>
+                                                                <path
+                                                                        class="opacity-75"
+                                                                        fill="currentColor"
+                                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                                ></path>
+                                                        </svg>
+                                                {/if}
+                                                <span>빈 포트 찾기</span>
+                                        </button>
+                                        <button
+                                                on:click={loadPorts}
+                                                disabled={loading}
+                                                class="btn-primary min-w-[120px] disabled:opacity-50"
+                                        >
+                                                <svg
+                                                        class="h-4 w-4 {loading ? 'animate-spin' : ''}"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                >
+                                                        <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                                        />
+                                                </svg>
+                                                <span>새로고침</span>
+                                        </button>
+                                </div>
                         </div>
                 </div>
 
-                <div class="flex gap-2 w-full md:w-auto">
-                        <button
-                                on:click={findAvailablePort}
-                                disabled={findingPort}
-                                class="btn-secondary w-full md:w-auto disabled:opacity-50"
-                        >
-                                {#if findingPort}
-                                        <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                                <circle
-                                                        class="opacity-25"
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="10"
-                                                        stroke="currentColor"
-                                                        stroke-width="4"
-                                                        fill="none"
-                                                ></circle>
-                                                <path
-                                                        class="opacity-75"
-                                                        fill="currentColor"
-                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                ></path>
-                                        </svg>
-                                {/if}
-                                <span>빈 포트 찾기</span>
-                        </button>
-                        <button
-                                on:click={loadPorts}
-                                disabled={loading}
-                                class="btn-primary w-full md:w-auto disabled:opacity-50"
-                        >
-                                <svg
-                                        class="h-4 w-4 {loading ? 'animate-spin' : ''}"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                >
-                                        <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                        />
-                                </svg>
-                                <span>새로고침</span>
-                        </button>
+                <div class="panel grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div class="flex flex-col gap-0.5 p-2 rounded border border-slate-100">
+                                <span class="text-[11px] uppercase tracking-wide text-slate-500">전체</span>
+                                <span class="text-xl font-semibold">{totalPorts}</span>
+                        </div>
+                        <div class="flex flex-col gap-0.5 p-2 rounded border border-slate-100">
+                                <span class="text-[11px] uppercase tracking-wide text-slate-500">Open</span>
+                                <span class="text-xl font-semibold text-green-700">{openPorts}</span>
+                        </div>
+                        <div class="flex flex-col gap-0.5 p-2 rounded border border-slate-100">
+                                <span class="text-[11px] uppercase tracking-wide text-slate-500">설명 있음</span>
+                                <span class="text-xl font-semibold text-blue-700">{describedPorts}</span>
+                        </div>
                 </div>
         </div>
 
@@ -302,15 +314,15 @@
                         </div>
                 {:else}
                         <div class="overflow-x-auto">
-                                <table class="w-full text-sm">
+                                <table class="w-full text-sm table-dense">
                                         <thead class="bg-slate-100 text-slate-700">
                                                 <tr>
-                                                        <th class="text-left py-3 px-4 font-semibold">Port</th>
-                                                        <th class="text-left py-3 px-4 font-semibold">Protocol</th>
-                                                        <th class="text-left py-3 px-4 font-semibold">Status</th>
-                                                        <th class="text-left py-3 px-4 font-semibold">Process</th>
-                                                        <th class="text-left py-3 px-4 font-semibold">Description</th>
-                                                        <th class="text-left py-3 px-4 font-semibold">Actions</th>
+                                                        <th class="text-left font-semibold">Port</th>
+                                                        <th class="text-left font-semibold">Protocol</th>
+                                                        <th class="text-left font-semibold">Status</th>
+                                                        <th class="text-left font-semibold">Process</th>
+                                                        <th class="text-left font-semibold">Description</th>
+                                                        <th class="text-left font-semibold">Actions</th>
                                                 </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-200">
@@ -321,7 +333,7 @@
                                                                         ? 'bg-blue-50'
                                                                         : ''}"
                                                         >
-                                                                <td class="py-3 px-4">
+                                                                <td>
                                                                         <button
                                                                                 on:click={() => openPort(port)}
                                                                                 class="font-mono text-blue-600 hover:underline"
@@ -329,11 +341,8 @@
                                                                                 {port.port}
                                                                         </button>
                                                                 </td>
-                                                                <td
-                                                                        class="py-3 px-4 text-slate-600 font-mono text-sm"
-                                                                        >{port.protocol.toUpperCase()}</td
-                                                                >
-                                                                <td class="py-3 px-4">
+                                                                <td class="text-slate-600 font-mono text-sm">{port.protocol.toUpperCase()}</td>
+                                                                <td>
                                                                         <span
                                                                                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border {port.state ===
                                                                                 'open'
@@ -351,7 +360,7 @@
                                                                                         : "Closed"}
                                                                         </span>
                                                                 </td>
-                                                                <td class="py-3 px-4">
+                                                                <td>
                                                                         {#if port.processName}
                                                                                 <div class="flex flex-col">
                                                                                         <span class="text-slate-900 font-medium">{port.processName}</span>
@@ -366,7 +375,7 @@
                                                                                 <span class="text-slate-400">-</span>
                                                                         {/if}
                                                                 </td>
-                                                                <td class="py-3 px-4">
+                                                                <td>
                                                                         {#if editingPort === port.port}
                                                                                 <div class="flex flex-col gap-2 min-w-[220px]">
                                                                                         <input
@@ -385,12 +394,21 @@
                                                                                         />
                                                                                 </div>
                                                                         {:else}
-                                                                                <span class="text-slate-600 text-sm"
-                                                                                        >{port.description || "-"}</span
-                                                                                >
+                                                                                <div class="flex flex-col gap-1 min-w-[220px]">
+                                                                                        <span class="text-slate-700 text-sm">{port.description || "-"}</span>
+                                                                                        {#if port.url}
+                                                                                                <a
+                                                                                                        class="text-xs text-blue-600 hover:underline truncate"
+                                                                                                        href={port.url}
+                                                                                                        target="_blank"
+                                                                                                        rel="noreferrer"
+                                                                                                        >{port.url}</a
+                                                                                                >
+                                                                                        {/if}
+                                                                                </div>
                                                                         {/if}
                                                                 </td>
-                                                                <td class="py-3 px-4">
+                                                                <td>
                                                                         {#if editingPort === port.port}
                                                                                 <div class="flex gap-2">
                                                                                         <button
@@ -487,7 +505,7 @@
                                         </tbody>
                                 </table>
                         </div>
-                        <div class="px-4 py-3 border-t border-slate-200 text-right text-slate-500 text-sm">
+                        <div class="px-3 sm:px-4 py-3 border-t border-slate-200 text-right text-slate-500 text-sm">
                                 총 {filteredPorts.length}개의 포트
                         </div>
                 {/if}

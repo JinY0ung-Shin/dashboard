@@ -12,7 +12,7 @@
 
 @layer components {
     .panel {
-        @apply bg-white border border-slate-200 rounded-lg shadow-sm p-5;
+        @apply bg-white border border-slate-200 rounded-lg shadow-sm p-4 sm:p-5;
     }
 
     .input {
@@ -29,5 +29,10 @@
 
     .btn-secondary {
         @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-offset-white;
+    }
+
+    .table-dense th,
+    .table-dense td {
+        @apply py-2.5 px-3;
     }
 }
