@@ -1,5 +1,6 @@
 import { Client } from 'ssh2';
 import { readFileSync, existsSync } from 'fs';
+import { readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
 import type { SSHForwardConfig, SSHForwardResult } from '$lib/types';
@@ -8,9 +9,69 @@ interface ActiveForward {
 	config: SSHForwardConfig;
 	client: Client;
 	server: any;
+	reconnectAttempts: number;
+	isReconnecting: boolean;
 }
 
 const activeForwards = new Map<string, ActiveForward>();
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY = 3000; // 3초
+
+const DATA_DIR = join(process.cwd(), 'data');
+const TUNNELS_FILE = join(DATA_DIR, 'ssh-tunnels.json');
+
+async function ensureDataDir() {
+	if (!existsSync(DATA_DIR)) {
+		await mkdir(DATA_DIR, { recursive: true });
+	}
+}
+
+async function saveTunnels() {
+	try {
+		await ensureDataDir();
+		const tunnels = Array.from(activeForwards.values()).map(f => f.config);
+		await writeFile(TUNNELS_FILE, JSON.stringify(tunnels, null, 2), 'utf-8');
+	} catch (error) {
+		console.error('Error saving SSH tunnels:', error);
+	}
+}
+
+async function loadSavedTunnels(): Promise<SSHForwardConfig[]> {
+	try {
+		await ensureDataDir();
+		if (!existsSync(TUNNELS_FILE)) {
+			return [];
+		}
+		const data = await readFile(TUNNELS_FILE, 'utf-8');
+
+		// 파일이 비어있으면 빈 배열 반환
+		if (!data || data.trim() === '') {
+			console.log('SSH tunnels file is empty, initializing...');
+			return [];
+		}
+
+		const tunnels: SSHForwardConfig[] = JSON.parse(data);
+		return Array.isArray(tunnels) ? tunnels : [];
+	} catch (error) {
+		console.error('Error loading SSH tunnels:', error);
+		// JSON 파싱 에러 시 파일을 백업하고 새로 시작
+		if (error instanceof SyntaxError) {
+			console.log('Invalid JSON in SSH tunnels file, resetting...');
+			try {
+				// 손상된 파일 백업
+				const backupFile = TUNNELS_FILE + '.backup.' + Date.now();
+				if (existsSync(TUNNELS_FILE)) {
+					const corruptedData = await readFile(TUNNELS_FILE, 'utf-8');
+					await writeFile(backupFile, corruptedData, 'utf-8');
+					console.log(`Backed up corrupted file to: ${backupFile}`);
+				}
+			} catch (backupError) {
+				console.error('Failed to backup corrupted file:', backupError);
+			}
+		}
+		return [];
+	}
+}
 
 function generateId(): string {
 	return `fwd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -39,9 +100,57 @@ function findSSHKey(): Buffer | undefined {
 	return undefined;
 }
 
-export async function createSSHForward(config: SSHForwardConfig): Promise<SSHForwardResult> {
+async function reconnectSSHForward(id: string, config: SSHForwardConfig): Promise<void> {
+	const forward = activeForwards.get(id);
+	if (!forward || forward.isReconnecting) return;
+
+	if (forward.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+		console.error(`[SSH Forward ${id}] 최대 재연결 시도 횟수 초과`);
+		forward.config.status = 'error';
+		await saveTunnels(); // 에러 상태 저장
+		return;
+	}
+
+	forward.isReconnecting = true;
+	forward.reconnectAttempts += 1;
+	forward.config.status = 'inactive';
+
+	console.log(`[SSH Forward ${id}] 재연결 시도 ${forward.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
+
+	setTimeout(async () => {
+		try {
+			// Map에서 제거되었는지 확인 (수동으로 stop된 경우)
+			if (!activeForwards.has(id)) {
+				console.log(`[SSH Forward ${id}] 이미 중지됨, 재연결 취소`);
+				return;
+			}
+
+			const result = await setupSSHConnection(id, config);
+			const currentForward = activeForwards.get(id);
+
+			if (!currentForward) return; // 재연결 도중 삭제됨
+
+			if (result.success) {
+				currentForward.reconnectAttempts = 0;
+				currentForward.isReconnecting = false;
+				console.log(`[SSH Forward ${id}] 재연결 성공`);
+				await saveTunnels();
+			} else {
+				currentForward.isReconnecting = false;
+				await reconnectSSHForward(id, config);
+			}
+		} catch (error) {
+			const currentForward = activeForwards.get(id);
+			if (currentForward) {
+				currentForward.isReconnecting = false;
+				await reconnectSSHForward(id, config);
+			}
+		}
+	}, RECONNECT_DELAY);
+}
+
+async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise<SSHForwardResult> {
 	return new Promise((resolve) => {
-		const id = config.id || generateId();
 		const client = new Client();
 
 		client.on('ready', () => {
@@ -58,7 +167,27 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 				}
 
 				const updatedConfig = { ...config, id, status: 'active' as const };
-				activeForwards.set(id, { config: updatedConfig, client, server: port });
+				const existingForward = activeForwards.get(id);
+
+				if (existingForward) {
+					// 기존 클라이언트 종료
+					try {
+						existingForward.client.end();
+					} catch (e) {
+						// 무시
+					}
+					existingForward.client = client;
+					existingForward.server = port;
+					existingForward.config = updatedConfig;
+				} else {
+					activeForwards.set(id, {
+						config: updatedConfig,
+						client,
+						server: port,
+						reconnectAttempts: 0,
+						isReconnecting: false
+					});
+				}
 
 				const accessInfo = bindAddress === '0.0.0.0' ? '(외부 접근 가능)' : '(localhost만)';
 				resolve({
@@ -89,11 +218,36 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 		});
 
 		client.on('error', (err) => {
-			activeForwards.delete(id);
-			resolve({
-				success: false,
-				message: `SSH 연결 오류: ${err.message}`
-			});
+			console.error(`[SSH Forward ${id}] 연결 오류:`, err.message);
+			// activeForwards에 아직 없으면 초기 연결 실패
+			if (!activeForwards.has(id)) {
+				resolve({
+					success: false,
+					message: `SSH 연결 오류: ${err.message}`
+				});
+			}
+			// 이미 연결된 경우는 재연결 로직이 처리함
+		});
+
+		client.on('close', (hadError) => {
+			const forward = activeForwards.get(id);
+			// Map에서 삭제되었으면 수동으로 중지한 것이므로 재연결 안 함
+			if (!forward) {
+				console.log(`[SSH Forward ${id}] 연결 종료 (수동 중지)`);
+				return;
+			}
+
+			console.log(`[SSH Forward ${id}] 연결 종료 (에러: ${hadError})`);
+
+			// 최대 재시도 횟수를 초과하지 않았으면 재연결 시도
+			if (forward.reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !forward.isReconnecting) {
+				console.log(`[SSH Forward ${id}] 재연결 예정...`);
+				reconnectSSHForward(id, config);
+			}
+		});
+
+		client.on('end', () => {
+			console.log(`[SSH Forward ${id}] 연결 끊김`);
 		});
 
 		// SSH 연결 시작
@@ -104,7 +258,9 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 				port: config.sshPort,
 				username: config.sshUser,
 				tryKeyboard: true,
-				readyTimeout: 10000
+				readyTimeout: 10000,
+				keepaliveInterval: 10000, // 10초마다 keepalive
+				keepaliveCountMax: 3
 			};
 
 			// SSH agent 사용 (Windows의 경우 pageant, Unix의 경우 SSH_AUTH_SOCK)
@@ -130,7 +286,18 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 	});
 }
 
-export function stopSSHForward(id: string): SSHForwardResult {
+export async function createSSHForward(config: SSHForwardConfig): Promise<SSHForwardResult> {
+	const id = config.id || generateId();
+	const result = await setupSSHConnection(id, { ...config, id });
+
+	if (result.success) {
+		await saveTunnels();
+	}
+
+	return result;
+}
+
+export async function stopSSHForward(id: string): Promise<SSHForwardResult> {
 	const forward = activeForwards.get(id);
 
 	if (!forward) {
@@ -141,14 +308,44 @@ export function stopSSHForward(id: string): SSHForwardResult {
 	}
 
 	try {
-		forward.client.end();
+		// 재연결 방지
+		forward.isReconnecting = true;
+		forward.reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
+
+		// Map에서 먼저 제거 (close 이벤트에서 재연결 시도 방지)
 		activeForwards.delete(id);
+
+		// 모든 이벤트 리스너 제거
+		forward.client.removeAllListeners();
+
+		// 에러 이벤트만 다시 추가 (연결 종료 시 발생하는 에러 무시)
+		forward.client.on('error', (err) => {
+			// 종료 중 발생하는 에러는 로그만 남기고 무시
+			console.log(`[SSH Forward ${id}] 종료 중 에러 무시:`, err.message);
+		});
+
+		// 연결 종료
+		forward.client.end();
+
+		// 강제 종료
+		setTimeout(() => {
+			try {
+				forward.client.destroy();
+			} catch (e) {
+				// 무시
+			}
+		}, 1000);
+
+		await saveTunnels();
+
+		console.log(`[SSH Forward ${id}] 터널 중지 완료`);
 
 		return {
 			success: true,
 			message: '포트 포워딩이 중지되었습니다'
 		};
 	} catch (error) {
+		console.error(`[SSH Forward ${id}] 중지 실패:`, error);
 		return {
 			success: false,
 			message: `포워딩 중지 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
@@ -162,4 +359,38 @@ export function listActiveForwards(): SSHForwardConfig[] {
 
 export function getForwardById(id: string): SSHForwardConfig | undefined {
 	return activeForwards.get(id)?.config;
+}
+
+export async function restoreSavedTunnels(): Promise<void> {
+	try {
+		const savedTunnels = await loadSavedTunnels();
+		console.log(`[SSH Forward] 저장된 터널 ${savedTunnels.length}개 복원 중...`);
+
+		if (savedTunnels.length === 0) {
+			console.log(`[SSH Forward] 복원할 터널이 없습니다`);
+			return;
+		}
+
+		for (const config of savedTunnels) {
+			try {
+				// 각 터널 복원 시도
+				const result = await setupSSHConnection(config.id!, config);
+				if (result.success) {
+					console.log(`[SSH Forward] 터널 복원 성공: ${config.name}`);
+				} else {
+					console.error(`[SSH Forward] 터널 복원 실패: ${config.name} - ${result.message}`);
+					// 복원 실패한 터널은 재연결 시도할 수 있도록 상태 유지
+				}
+			} catch (error) {
+				console.error(`[SSH Forward] 터널 복원 중 예외 발생: ${config.name}`, error);
+			}
+
+			// 각 복원 사이에 약간의 지연 (동시 연결 제한)
+			await new Promise(resolve => setTimeout(resolve, 500));
+		}
+
+		console.log(`[SSH Forward] 터널 복원 완료`);
+	} catch (error) {
+		console.error('[SSH Forward] 터널 복원 프로세스 오류:', error);
+	}
 }

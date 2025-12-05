@@ -19,10 +19,32 @@ async function readDescriptions(): Promise<Map<number, PortDescription>> {
 			return new Map();
 		}
 		const data = await readFile(DESCRIPTIONS_FILE, 'utf-8');
+
+		// 파일이 비어있으면 빈 Map 반환
+		if (!data || data.trim() === '') {
+			console.log('Port descriptions file is empty, initializing...');
+			return new Map();
+		}
+
 		const descriptions: PortDescription[] = JSON.parse(data);
 		return new Map(descriptions.map(d => [d.port, d]));
 	} catch (error) {
 		console.error('Error reading port descriptions:', error);
+		// JSON 파싱 에러 시 파일을 백업하고 새로 시작
+		if (error instanceof SyntaxError) {
+			console.log('Invalid JSON in port descriptions file, resetting...');
+			try {
+				// 손상된 파일 백업
+				const backupFile = DESCRIPTIONS_FILE + '.backup.' + Date.now();
+				if (existsSync(DESCRIPTIONS_FILE)) {
+					const corruptedData = await readFile(DESCRIPTIONS_FILE, 'utf-8');
+					await writeFile(backupFile, corruptedData, 'utf-8');
+					console.log(`Backed up corrupted file to: ${backupFile}`);
+				}
+			} catch (backupError) {
+				console.error('Failed to backup corrupted file:', backupError);
+			}
+		}
 		return new Map();
 	}
 }

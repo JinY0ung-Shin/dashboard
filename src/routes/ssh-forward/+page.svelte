@@ -1,5 +1,5 @@
 <script lang="ts">
-        import { onMount } from "svelte";
+        import { onMount, onDestroy } from "svelte";
         import TunnelForm from "./components/TunnelForm.svelte";
         import ForwardCard from "./components/ForwardCard.svelte";
         import type {
@@ -22,7 +22,7 @@
                 sshUser: "",
                 sshHost: "",
                 sshPort: 22,
-                portDescription: "",
+                author: "",
         };
 
         let configEntries: SSHConfigEntry[] = [];
@@ -30,6 +30,7 @@
         let configError = "";
         let sshConfigPath = "";
         let selectedAlias = "";
+        let statusCheckInterval: ReturnType<typeof setInterval> | null = null;
 
         async function loadForwards() {
                 loading = true;
@@ -135,7 +136,7 @@
                 sshUser: "",
                 sshHost: "",
                 sshPort: 22,
-                portDescription: "",
+                author: "",
         };
                 selectedAlias = "";
         }
@@ -161,6 +162,18 @@
         onMount(() => {
                 loadForwards();
                 loadConfigEntries();
+
+                // 5초마다 상태 확인
+                statusCheckInterval = setInterval(() => {
+                        loadForwards();
+                }, 5000);
+        });
+
+        onDestroy(() => {
+                // interval 정리
+                if (statusCheckInterval) {
+                        clearInterval(statusCheckInterval);
+                }
         });
 </script>
 

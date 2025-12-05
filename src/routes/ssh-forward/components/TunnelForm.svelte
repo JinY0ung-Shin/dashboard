@@ -17,7 +17,7 @@
 
         let tooltips: Record<string, string> = {
                 name: "터널을 구분하기 위한 이름입니다 (예: Production API, Dev Server)",
-                portDescription: "대시보드에 표시될 포트 설명입니다 (선택사항)",
+                author: "이 터널을 등록한 사람의 이름입니다 (선택사항)",
                 localPort: "로컬 컴퓨터에서 사용할 포트 번호입니다",
                 bindAddress:
                         "localhost는 현재 서버 안에서만 접근 가능, 0.0.0.0은 외부 다른 서버에서도 접근 가능합니다",
@@ -61,21 +61,19 @@
                                 </div>
                                 <div>
                                         <label
-                                                for="portDescription"
+                                                for="author"
                                                 class="text-xs text-slate-400 flex items-center gap-1"
                                         >
-                                                Description
+                                                등록자
                                                 <Tooltip
-                                                        text={tooltips.portDescription}
+                                                        text={tooltips.author}
                                                 />
                                         </label>
                                         <input
-                                                id="portDescription"
+                                                id="author"
                                                 type="text"
-                                                bind:value={
-                                                        formData.portDescription
-                                                }
-                                                placeholder="API Server"
+                                                bind:value={formData.author}
+                                                placeholder="knox-id"
                                                 class="glass-input w-full"
                                         />
                                 </div>

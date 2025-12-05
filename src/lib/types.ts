@@ -26,7 +26,7 @@ export interface SSHForwardConfig {
 	sshHost: string;
 	sshPort: number;
 	status?: 'active' | 'inactive' | 'error';
-	portDescription?: string;
+	author?: string; // 터널을 등록한 사람
 	portUrl?: string;
 }
 

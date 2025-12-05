@@ -3,19 +3,36 @@
 
 	export let forward: SSHForwardConfig;
 	export let onStop: (id: string) => void;
+
+	$: statusColor = forward.status === 'active' ? 'bg-green-500' :
+	                 forward.status === 'error' ? 'bg-red-500' : 'bg-yellow-500';
+	$: statusText = forward.status === 'active' ? '' :
+	                forward.status === 'error' ? '연결 실패' : '재연결 중...';
 </script>
 
 <div class="glass-card">
 	<div class="flex items-start justify-between mb-2">
-		<div>
-			<h3 class="text-sm font-semibold text-white">
-				{forward.name}
-			</h3>
+		<div class="flex-1">
+			<div class="flex items-center gap-2">
+				<h3 class="text-sm font-semibold text-white">
+					{forward.name}
+				</h3>
+				{#if statusText}
+					<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">
+						{statusText}
+					</span>
+				{/if}
+			</div>
 			<div class="text-xs text-slate-500 font-mono">
 				{forward.sshUser}@{forward.sshHost}
 			</div>
+			{#if forward.author}
+				<div class="text-[10px] text-slate-600 mt-0.5">
+					등록자: {forward.author}
+				</div>
+			{/if}
 		</div>
-		<span class="w-2 h-2 rounded-full bg-green-500"></span>
+		<span class="w-2 h-2 rounded-full {statusColor}"></span>
 	</div>
 
 	<div class="space-y-1 mb-2 text-xs">
