@@ -2,7 +2,6 @@
         import { onMount } from "svelte";
         import TunnelForm from "./components/TunnelForm.svelte";
         import ForwardCard from "./components/ForwardCard.svelte";
-        import ConfigCard from "./components/ConfigCard.svelte";
         import type {
                 SSHConfigEntry,
                 SSHForwardConfig,
@@ -222,6 +221,94 @@
                 </div>
         </div>
 
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl p-3 md:p-4 shadow-lg shadow-black/20">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div class="flex items-center gap-2 text-sm text-slate-200">
+                                <svg class="h-4 w-4 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M12 11c1.657 0 3-1.79 3-4s-1.343-4-3-4-3 1.79-3 4 1.343 4 3 4zM5.5 21a6.5 6.5 0 0113 0"
+                                        />
+                                </svg>
+                                <span class="font-semibold">사용가능한 SSH aliases</span>
+                                <span class="text-slate-500 text-xs">{sshConfigPath || "~/.ssh/config"}</span>
+                        </div>
+
+                        <button
+                                on:click={loadConfigEntries}
+                                disabled={configLoading}
+                                class="text-xs px-3 py-1 rounded-lg border border-white/10 bg-white/5 text-slate-200 flex items-center gap-2 disabled:opacity-50"
+                        >
+                                <svg
+                                        class="h-3.5 w-3.5"
+                                        class:animate-spin={configLoading}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                >
+                                        <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                        />
+                                </svg>
+                                <span>새로고침</span>
+                        </button>
+                </div>
+
+                {#if configError}
+                        <div class="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded-lg p-3 animate-slide-up">
+                                {configError}
+                        </div>
+                {/if}
+
+                <div class="mt-3 space-y-3">
+                        {#if configLoading && configEntries.length === 0}
+                                <div class="text-center py-4 text-slate-400 text-sm">
+                                        <div class="w-6 h-6 border-4 border-violet-400/30 border-t-violet-400 rounded-full animate-spin mx-auto mb-2"></div>
+                                        <p>Loading SSH aliases...</p>
+                                </div>
+                        {:else if configEntries.length === 0}
+                                <div class="text-sm text-slate-400 flex items-center gap-2">
+                                        <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                                                />
+                                        </svg>
+                                        <span>등록된 alias가 없습니다. ~/.ssh/config의 Host 블록을 참고하세요.</span>
+                                </div>
+                        {:else}
+                                <div class="flex flex-wrap gap-2">
+                                        {#each configEntries as entry}
+                                                <button
+                                                        class="group px-3 py-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-left text-xs text-slate-200 transition"
+                                                        on:click={() => applyToTunnel(entry)}
+                                                        title={`Alias 적용: ${entry.alias}`}
+                                                >
+                                                        <div class="flex items-center gap-2">
+                                                                <span class="font-semibold text-white">{entry.alias}</span>
+                                                                {#if entry.proxyJump}
+                                                                        <span class="text-[10px] text-violet-200 bg-violet-500/20 border border-violet-400/30 rounded-full px-2 py-0.5">
+                                                                                ProxyJump → {entry.proxyJump}
+                                                                        </span>
+                                                                {/if}
+                                                        </div>
+                                                        {#if entry.hostName}
+                                                                <div class="text-slate-400 text-[11px] mt-1">{entry.hostName}:{entry.port ?? 22}</div>
+                                                        {/if}
+                                                </button>
+                                        {/each}
+                                </div>
+                        {/if}
+                </div>
+        </div>
+
         {#if success}
                 <div
                         class="p-4 bg-green-500/10 border border-green-500/20 text-green-200 rounded-lg animate-slide-up"
@@ -298,82 +385,4 @@
                 {/if}
         </div>
 
-        <div class="space-y-4 pt-10 border-t border-white/5">
-                <div class="flex items-center justify-between flex-wrap gap-4">
-                        <div>
-                                <h3 class="text-2xl font-semibold text-white flex items-center gap-2">
-                                        <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 11c1.657 0 3-1.79 3-4s-1.343-4-3-4-3 1.79-3 4 1.343 4 3 4zM5.5 21a6.5 6.5 0 0113 0"
-                                                />
-                                        </svg>
-                                        SSH Config (aliases)
-                                </h3>
-                                <p class="text-slate-400 text-sm">
-                                        Showing Host entries from {sshConfigPath || "~/.ssh/config"}.
-                                </p>
-                        </div>
-                        <div class="flex gap-3">
-                                <button
-                                        on:click={loadConfigEntries}
-                                        disabled={configLoading}
-                                        class="glass-btn-primary flex items-center gap-2 disabled:opacity-50"
-                                >
-                                        <svg
-                                                class="h-4 w-4"
-                                                class:animate-spin={configLoading}
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                        >
-                                                <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                                />
-                                        </svg>
-                                        <span>Refresh</span>
-                                </button>
-                        </div>
-                </div>
-
-                {#if configError}
-                        <div
-                                class="p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-lg animate-slide-up"
-                        >
-                                {configError}
-                        </div>
-                {/if}
-
-                <div class="space-y-4">
-                        {#if configLoading && configEntries.length === 0}
-                                <div class="text-center py-12 text-slate-400">
-                                        <div
-                                                class="w-8 h-8 border-4 border-violet-400/30 border-t-violet-400 rounded-full animate-spin mx-auto mb-4"
-                                        ></div>
-                                        <p>Loading SSH config...</p>
-                                </div>
-                        {:else if configEntries.length === 0}
-                                <div class="glass-card border-dashed border-2 border-slate-700/50 text-center py-12">
-                                        <h4 class="text-lg text-slate-200 mb-2">No aliases found</h4>
-                                        <p class="text-slate-500 mb-4">
-                                                Add Host blocks to your ~/.ssh/config file to see them here.
-                                        </p>
-                                </div>
-                        {:else}
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {#each configEntries as entry}
-                                                <ConfigCard
-                                                        {entry}
-                                                        applyToTunnel={applyToTunnel}
-                                                />
-                                        {/each}
-                                </div>
-                        {/if}
-                </div>
-        </div>
 </div>
