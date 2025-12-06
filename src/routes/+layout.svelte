@@ -3,13 +3,18 @@
 	import { page } from "$app/stores";
 </script>
 
+<svelte:head>
+	<title>PortKnox - Secure Port Management & SSH Tunnel Dashboard</title>
+	<meta name="description" content="PortKnox - Professional port monitoring and SSH tunnel management dashboard" />
+</svelte:head>
+
 <div class="min-h-screen text-slate-100">
 	<nav class="border-b border-slate-800 bg-slate-900">
 		<div class="max-w-7xl mx-auto px-4">
 			<div class="flex items-center justify-between h-10">
 				<div class="flex items-center gap-4">
 					<div class="text-sm font-semibold text-slate-200">
-						PortDash
+						PortKnox
 					</div>
 					<div class="flex items-baseline space-x-2 text-xs">
 						<a

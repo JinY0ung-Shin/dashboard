@@ -428,10 +428,10 @@ export function getForwardById(id: string): SSHForwardConfig | undefined {
 export async function restoreSavedTunnels(): Promise<void> {
 	try {
 		const savedTunnels = loadSavedTunnels();
-		console.log(`[SSH Forward] 저장된 터널 ${savedTunnels.length}개 복원 중...`);
+		console.log(`[PortKnox SSH] 저장된 터널 ${savedTunnels.length}개 복원 중...`);
 
 		if (savedTunnels.length === 0) {
-			console.log(`[SSH Forward] 복원할 터널이 없습니다`);
+			console.log(`[PortKnox SSH] 복원할 터널이 없습니다`);
 			return;
 		}
 
@@ -440,22 +440,22 @@ export async function restoreSavedTunnels(): Promise<void> {
 				// 각 터널 복원 시도
 				const result = await setupSSHConnection(config.id!, config);
 				if (result.success) {
-					console.log(`[SSH Forward] 터널 복원 성공: ${config.name}`);
+					console.log(`[PortKnox SSH] 터널 복원 성공: ${config.name}`);
 					saveTunnel(result.config!);
 				} else {
-					console.error(`[SSH Forward] 터널 복원 실패: ${config.name} - ${result.message}`);
+					console.error(`[PortKnox SSH] 터널 복원 실패: ${config.name} - ${result.message}`);
 					// 복원 실패한 터널은 재연결 시도할 수 있도록 상태 유지
 				}
 			} catch (error) {
-				console.error(`[SSH Forward] 터널 복원 중 예외 발생: ${config.name}`, error);
+				console.error(`[PortKnox SSH] 터널 복원 중 예외 발생: ${config.name}`, error);
 			}
 
 			// 각 복원 사이에 약간의 지연 (동시 연결 제한)
 			await new Promise(resolve => setTimeout(resolve, 500));
 		}
 
-		console.log(`[SSH Forward] 터널 복원 완료`);
+		console.log(`[PortKnox SSH] 터널 복원 완료`);
 	} catch (error) {
-		console.error('[SSH Forward] 터널 복원 프로세스 오류:', error);
+		console.error('[PortKnox SSH] 터널 복원 프로세스 오류:', error);
 	}
 }

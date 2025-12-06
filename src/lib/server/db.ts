@@ -56,6 +56,6 @@ db.exec(`
 	END;
 `);
 
-console.log(`[Database] SQLite database initialized at ${DB_PATH}`);
+console.log(`[PortKnox] SQLite database initialized at ${DB_PATH}`);
 
 export default db;

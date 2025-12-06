@@ -1,6 +1,7 @@
 {
-	"name": "server-port-dashboard",
+	"name": "portknox",
 	"version": "0.0.1",
+	"description": "PortKnox - Secure Port Management & SSH Tunnel Dashboard",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
