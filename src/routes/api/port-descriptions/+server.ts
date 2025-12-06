@@ -8,7 +8,7 @@ import {
 
 export const GET: RequestHandler = async () => {
 	try {
-		const descriptions = await getAllPortDescriptions();
+		const descriptions = getAllPortDescriptions();
 		return json({ success: true, descriptions });
 	} catch (error) {
 		return json(
@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Description is required' }, { status: 400 });
 		}
 
-		await setPortDescription(port, description, author);
+		setPortDescription(port, description, author);
 		return json({ success: true, message: 'Port description saved' });
 	} catch (error) {
 		return json(
@@ -54,7 +54,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Invalid port number' }, { status: 400 });
 		}
 
-		await deletePortDescription(port);
+		deletePortDescription(port);
 		return json({ success: true, message: 'Port description deleted' });
 	} catch (error) {
 		return json(

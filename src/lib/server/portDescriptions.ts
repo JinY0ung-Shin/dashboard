@@ -1,83 +1,32 @@
-import { readFile, writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import db from './db';
 import type { PortDescription } from '$lib/types';
 
-const DATA_DIR = join(process.cwd(), 'data');
-const DESCRIPTIONS_FILE = join(DATA_DIR, 'port-descriptions.json');
-
-async function ensureDataDir() {
-	if (!existsSync(DATA_DIR)) {
-		await mkdir(DATA_DIR, { recursive: true });
-	}
+export function getPortDescription(port: number): PortDescription | undefined {
+	const stmt = db.prepare('SELECT port, description, author FROM port_descriptions WHERE port = ?');
+	const row = stmt.get(port) as PortDescription | undefined;
+	return row;
 }
 
-async function readDescriptions(): Promise<Map<number, PortDescription>> {
-	try {
-		await ensureDataDir();
-		if (!existsSync(DESCRIPTIONS_FILE)) {
-			return new Map();
-		}
-		const data = await readFile(DESCRIPTIONS_FILE, 'utf-8');
-
-		// 파일이 비어있으면 빈 Map 반환
-		if (!data || data.trim() === '') {
-			console.log('Port descriptions file is empty, initializing...');
-			return new Map();
-		}
-
-		const descriptions: PortDescription[] = JSON.parse(data);
-		return new Map(descriptions.map(d => [d.port, d]));
-	} catch (error) {
-		console.error('Error reading port descriptions:', error);
-		// JSON 파싱 에러 시 파일을 백업하고 새로 시작
-		if (error instanceof SyntaxError) {
-			console.log('Invalid JSON in port descriptions file, resetting...');
-			try {
-				// 손상된 파일 백업
-				const backupFile = DESCRIPTIONS_FILE + '.backup.' + Date.now();
-				if (existsSync(DESCRIPTIONS_FILE)) {
-					const corruptedData = await readFile(DESCRIPTIONS_FILE, 'utf-8');
-					await writeFile(backupFile, corruptedData, 'utf-8');
-					console.log(`Backed up corrupted file to: ${backupFile}`);
-				}
-			} catch (backupError) {
-				console.error('Failed to backup corrupted file:', backupError);
-			}
-		}
-		return new Map();
-	}
+export function getAllPortDescriptions(): PortDescription[] {
+	const stmt = db.prepare('SELECT port, description, author FROM port_descriptions ORDER BY port');
+	const rows = stmt.all() as PortDescription[];
+	return rows;
 }
 
-async function writeDescriptions(descriptions: Map<number, PortDescription>) {
-	try {
-		await ensureDataDir();
-		const data = Array.from(descriptions.values());
-		await writeFile(DESCRIPTIONS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-	} catch (error) {
-		console.error('Error writing port descriptions:', error);
-		throw error;
-	}
+export function setPortDescription(port: number, description: string, author?: string): void {
+	const stmt = db.prepare(`
+		INSERT INTO port_descriptions (port, description, author)
+		VALUES (?, ?, ?)
+		ON CONFLICT(port) DO UPDATE SET
+			description = excluded.description,
+			author = excluded.author,
+			updated_at = CURRENT_TIMESTAMP
+	`);
+
+	stmt.run(port, description, author || null);
 }
 
-export async function getPortDescription(port: number): Promise<PortDescription | undefined> {
-	const descriptions = await readDescriptions();
-	return descriptions.get(port);
-}
-
-export async function getAllPortDescriptions(): Promise<PortDescription[]> {
-	const descriptions = await readDescriptions();
-	return Array.from(descriptions.values());
-}
-
-export async function setPortDescription(port: number, description: string, author?: string): Promise<void> {
-	const descriptions = await readDescriptions();
-	descriptions.set(port, { port, description, author });
-	await writeDescriptions(descriptions);
-}
-
-export async function deletePortDescription(port: number): Promise<void> {
-	const descriptions = await readDescriptions();
-	descriptions.delete(port);
-	await writeDescriptions(descriptions);
+export function deletePortDescription(port: number): void {
+	const stmt = db.prepare('DELETE FROM port_descriptions WHERE port = ?');
+	stmt.run(port);
 }

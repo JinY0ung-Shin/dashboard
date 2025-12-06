@@ -34,7 +34,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			const description = `SSH Tunnel: ${config.name}`;
 
 			try {
-				await setPortDescription(
+				setPortDescription(
 					config.localPort,
 					description,
 					config.author
@@ -73,7 +73,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
 			// 터널 삭제 시 포트 설명도 삭제
 			if (localPort) {
 				try {
-					await deletePortDescription(localPort);
+					deletePortDescription(localPort);
 				} catch (error) {
 					console.error('Failed to delete port description:', error);
 					// 포트 설명 삭제 실패는 무시

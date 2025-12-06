@@ -6,7 +6,7 @@ import { getAllPortDescriptions } from '$lib/server/portDescriptions';
 export const GET: RequestHandler = async () => {
 	try {
 		const ports = await scanPorts();
-		const descriptions = await getAllPortDescriptions();
+		const descriptions = getAllPortDescriptions();
 		const descriptionMap = new Map(descriptions.map(d => [d.port, d]));
 
 		// 포트 정보에 저장된 설명 병합

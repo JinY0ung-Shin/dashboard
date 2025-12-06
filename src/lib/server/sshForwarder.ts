@@ -1,8 +1,8 @@
 import { Client } from 'ssh2';
 import { readFileSync, existsSync } from 'fs';
-import { readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
+import db from './db';
 import type { SSHForwardConfig, SSHForwardResult } from '$lib/types';
 
 interface ActiveForward {
@@ -17,58 +17,63 @@ const activeForwards = new Map<string, ActiveForward>();
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000; // 3초
 
-const DATA_DIR = join(process.cwd(), 'data');
-const TUNNELS_FILE = join(DATA_DIR, 'ssh-tunnels.json');
+function saveTunnel(config: SSHForwardConfig): void {
+	const stmt = db.prepare(`
+		INSERT INTO ssh_tunnels (
+			id, name, remote_host, remote_port, local_port,
+			local_bind_address, ssh_user, ssh_host, ssh_port, author, status
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET
+			name = excluded.name,
+			remote_host = excluded.remote_host,
+			remote_port = excluded.remote_port,
+			local_port = excluded.local_port,
+			local_bind_address = excluded.local_bind_address,
+			ssh_user = excluded.ssh_user,
+			ssh_host = excluded.ssh_host,
+			ssh_port = excluded.ssh_port,
+			author = excluded.author,
+			status = excluded.status,
+			updated_at = CURRENT_TIMESTAMP
+	`);
 
-async function ensureDataDir() {
-	if (!existsSync(DATA_DIR)) {
-		await mkdir(DATA_DIR, { recursive: true });
-	}
+	stmt.run(
+		config.id,
+		config.name,
+		config.remoteHost,
+		config.remotePort,
+		config.localPort,
+		config.localBindAddress || '127.0.0.1',
+		config.sshUser,
+		config.sshHost,
+		config.sshPort,
+		config.author || null,
+		config.status || 'active'
+	);
 }
 
-async function saveTunnels() {
-	try {
-		await ensureDataDir();
-		const tunnels = Array.from(activeForwards.values()).map(f => f.config);
-		await writeFile(TUNNELS_FILE, JSON.stringify(tunnels, null, 2), 'utf-8');
-	} catch (error) {
-		console.error('Error saving SSH tunnels:', error);
-	}
+function deleteTunnel(id: string): void {
+	const stmt = db.prepare('DELETE FROM ssh_tunnels WHERE id = ?');
+	stmt.run(id);
 }
 
-async function loadSavedTunnels(): Promise<SSHForwardConfig[]> {
+function loadSavedTunnels(): SSHForwardConfig[] {
 	try {
-		await ensureDataDir();
-		if (!existsSync(TUNNELS_FILE)) {
-			return [];
-		}
-		const data = await readFile(TUNNELS_FILE, 'utf-8');
+		const stmt = db.prepare(`
+			SELECT
+				id, name, remote_host as remoteHost, remote_port as remotePort,
+				local_port as localPort, local_bind_address as localBindAddress,
+				ssh_user as sshUser, ssh_host as sshHost, ssh_port as sshPort,
+				author, status
+			FROM ssh_tunnels
+			ORDER BY created_at
+		`);
 
-		// 파일이 비어있으면 빈 배열 반환
-		if (!data || data.trim() === '') {
-			console.log('SSH tunnels file is empty, initializing...');
-			return [];
-		}
-
-		const tunnels: SSHForwardConfig[] = JSON.parse(data);
-		return Array.isArray(tunnels) ? tunnels : [];
+		const tunnels = stmt.all() as SSHForwardConfig[];
+		return tunnels;
 	} catch (error) {
 		console.error('Error loading SSH tunnels:', error);
-		// JSON 파싱 에러 시 파일을 백업하고 새로 시작
-		if (error instanceof SyntaxError) {
-			console.log('Invalid JSON in SSH tunnels file, resetting...');
-			try {
-				// 손상된 파일 백업
-				const backupFile = TUNNELS_FILE + '.backup.' + Date.now();
-				if (existsSync(TUNNELS_FILE)) {
-					const corruptedData = await readFile(TUNNELS_FILE, 'utf-8');
-					await writeFile(backupFile, corruptedData, 'utf-8');
-					console.log(`Backed up corrupted file to: ${backupFile}`);
-				}
-			} catch (backupError) {
-				console.error('Failed to backup corrupted file:', backupError);
-			}
-		}
 		return [];
 	}
 }
@@ -107,7 +112,7 @@ async function reconnectSSHForward(id: string, config: SSHForwardConfig): Promis
 	if (forward.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
 		console.error(`[SSH Forward ${id}] 최대 재연결 시도 횟수 초과`);
 		forward.config.status = 'error';
-		await saveTunnels(); // 에러 상태 저장
+		saveTunnel(forward.config);
 		return;
 	}
 
@@ -134,7 +139,7 @@ async function reconnectSSHForward(id: string, config: SSHForwardConfig): Promis
 				currentForward.reconnectAttempts = 0;
 				currentForward.isReconnecting = false;
 				console.log(`[SSH Forward ${id}] 재연결 성공`);
-				await saveTunnels();
+				saveTunnel(currentForward.config);
 			} else {
 				currentForward.isReconnecting = false;
 				await reconnectSSHForward(id, config);
@@ -291,7 +296,7 @@ export async function createSSHForward(config: SSHForwardConfig): Promise<SSHFor
 	const result = await setupSSHConnection(id, { ...config, id });
 
 	if (result.success) {
-		await saveTunnels();
+		saveTunnel(result.config!);
 	}
 
 	return result;
@@ -336,7 +341,7 @@ export async function stopSSHForward(id: string): Promise<SSHForwardResult> {
 			}
 		}, 1000);
 
-		await saveTunnels();
+		deleteTunnel(id);
 
 		console.log(`[SSH Forward ${id}] 터널 중지 완료`);
 
@@ -363,7 +368,7 @@ export function getForwardById(id: string): SSHForwardConfig | undefined {
 
 export async function restoreSavedTunnels(): Promise<void> {
 	try {
-		const savedTunnels = await loadSavedTunnels();
+		const savedTunnels = loadSavedTunnels();
 		console.log(`[SSH Forward] 저장된 터널 ${savedTunnels.length}개 복원 중...`);
 
 		if (savedTunnels.length === 0) {
@@ -377,6 +382,7 @@ export async function restoreSavedTunnels(): Promise<void> {
 				const result = await setupSSHConnection(config.id!, config);
 				if (result.success) {
 					console.log(`[SSH Forward] 터널 복원 성공: ${config.name}`);
+					saveTunnel(result.config!);
 				} else {
 					console.error(`[SSH Forward] 터널 복원 실패: ${config.name} - ${result.message}`);
 					// 복원 실패한 터널은 재연결 시도할 수 있도록 상태 유지

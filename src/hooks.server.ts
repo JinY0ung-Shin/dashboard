@@ -1,4 +1,8 @@
 import { restoreSavedTunnels } from '$lib/server/sshForwarder';
+import { migrateJSONToSQLite } from '$lib/server/migrate';
+
+// 서버 시작 시 JSON 데이터를 SQLite로 마이그레이션 (첫 실행 시에만)
+migrateJSONToSQLite();
 
 // 서버 시작 시 저장된 SSH 터널 복원
 restoreSavedTunnels().catch((error) => {
