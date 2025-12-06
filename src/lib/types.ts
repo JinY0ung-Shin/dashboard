@@ -6,13 +6,13 @@ export interface PortInfo {
 	pid?: number;
 	processName?: string;
 	description?: string;
-	url?: string;
+	author?: string;
 }
 
 export interface PortDescription {
 	port: number;
 	description: string;
-	url?: string;
+	author?: string;
 }
 
 export interface SSHForwardConfig {

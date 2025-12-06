@@ -23,7 +23,7 @@ export const GET: RequestHandler = async () => {
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { port, description, url } = await request.json();
+		const { port, description, author } = await request.json();
 
 		if (!port || typeof port !== 'number') {
 			return json({ success: false, error: 'Invalid port number' }, { status: 400 });
@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Description is required' }, { status: 400 });
 		}
 
-		await setPortDescription(port, description, url);
+		await setPortDescription(port, description, author);
 		return json({ success: true, message: 'Port description saved' });
 	} catch (error) {
 		return json(

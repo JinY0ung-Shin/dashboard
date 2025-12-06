@@ -21,7 +21,7 @@
 	let editingPort: number | null = null;
 	let editForm = {
 		description: "",
-		url: "",
+		author: "",
 	};
 	let success = "";
 
@@ -71,31 +71,21 @@
 		}
 	}
 
-        const resolvePortUrl = (port: PortInfo) => {
-			const defaultUrl = `${hostBase}:${port.port}`;
-			if (!port.url) return defaultUrl;
-
-			const rawUrl = port.url.trim();
-			const normalized = rawUrl.startsWith("http") ? rawUrl : `http://${rawUrl}`;
-
-			return defaultUrl
-		};
-
         function openPort(port: PortInfo) {
-                const url = resolvePortUrl(port);
+                const url = `${hostBase}:${port.port}`;
                 window.open(url, "_blank");
         }
 
         function startEditPort(port: PortInfo) {
                 editingPort = port.port;
                 editForm.description = port.description || "";
-                editForm.url = resolvePortUrl(port);
+                editForm.author = port.author || "";
         }
 
 	function cancelEdit() {
 		editingPort = null;
 		editForm.description = "";
-		editForm.url = "";
+		editForm.author = "";
 	}
 
 	async function saveDescription(port: number) {
@@ -109,7 +99,7 @@
 				body: JSON.stringify({
 					port,
 					description: editForm.description,
-					url: editForm.url,
+					author: editForm.author,
 				}),
 			});
 			const data = await response.json();
@@ -268,6 +258,7 @@
                                                         <th class="text-left py-1 px-2 font-medium text-slate-400">Status</th>
                                                         <th class="text-left py-1 px-2 font-medium text-slate-400">Process</th>
                                                         <th class="text-left py-1 px-2 font-medium text-slate-400">Description</th>
+                                                        <th class="text-left py-1 px-2 font-medium text-slate-400">Registrant</th>
                                                         <th class="text-left py-1 px-2 font-medium text-slate-400">Actions</th>
                                                 </tr>
                                         </thead>
@@ -304,22 +295,26 @@
 								</td>
                                                                 <td class="py-1 px-2">
                                                                         {#if editingPort === port.port}
-										<div class="flex flex-col gap-1 min-w-[150px]">
-											<input
-												type="text"
-												placeholder="Description"
-												bind:value={editForm.description}
-												class="glass-input"
-											/>
-											<input
-												type="text"
-												placeholder="URL"
-												bind:value={editForm.url}
-												class="glass-input"
-											/>
-										</div>
+										<input
+											type="text"
+											placeholder="Description"
+											bind:value={editForm.description}
+											class="glass-input"
+										/>
 									{:else}
 										<span class="text-slate-400">{port.description || "-"}</span>
+									{/if}
+								</td>
+                                                                <td class="py-1 px-2">
+                                                                        {#if editingPort === port.port}
+										<input
+											type="text"
+											placeholder="Registrant"
+											bind:value={editForm.author}
+											class="glass-input"
+										/>
+									{:else}
+										<span class="text-slate-400">{port.author || "-"}</span>
 									{/if}
 								</td>
                                                                 <td class="py-1 px-2">

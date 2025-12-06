@@ -31,14 +31,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		if (result.success) {
 			// SSH 포워딩 성공 시, 포트 설명 자동 생성 및 저장
-			const authorInfo = config.author ? ` (${config.author})` : '';
-			const description = `SSH Tunnel: ${config.name}${authorInfo}`;
+			const description = `SSH Tunnel: ${config.name}`;
 
 			try {
 				await setPortDescription(
 					config.localPort,
 					description,
-					config.portUrl
+					config.author
 				);
 			} catch (error) {
 				console.error('Failed to save port description:', error);

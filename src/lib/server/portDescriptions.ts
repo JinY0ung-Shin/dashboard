@@ -70,9 +70,9 @@ export async function getAllPortDescriptions(): Promise<PortDescription[]> {
 	return Array.from(descriptions.values());
 }
 
-export async function setPortDescription(port: number, description: string, url?: string): Promise<void> {
+export async function setPortDescription(port: number, description: string, author?: string): Promise<void> {
 	const descriptions = await readDescriptions();
-	descriptions.set(port, { port, description, url });
+	descriptions.set(port, { port, description, author });
 	await writeDescriptions(descriptions);
 }
 
