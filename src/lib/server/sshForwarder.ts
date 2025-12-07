@@ -1,4 +1,5 @@
 import { Client } from 'ssh2';
+import { createServer, type Server } from 'net';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -8,7 +9,7 @@ import type { SSHForwardConfig, SSHForwardResult } from '$lib/types';
 interface ActiveForward {
 	config: SSHForwardConfig;
 	client: Client;
-	server: any;
+	server: Server;
 	reconnectAttempts: number;
 	isReconnecting: boolean;
 }
@@ -170,38 +171,108 @@ async function reconnectSSHForward(id: string, config: SSHForwardConfig): Promis
 async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise<SSHForwardResult> {
 	return new Promise((resolve) => {
 		const client = new Client();
+		let localServer: Server | null = null;
 
 		client.on('ready', () => {
-			// SSH 연결 성공
+			// SSH 연결 성공 - 이제 로컬 TCP 서버 생성
 			const bindAddress = config.localBindAddress || '127.0.0.1';
-			client.forwardIn(bindAddress, config.localPort, (err, port) => {
-				if (err) {
-					client.end();
-					resolve({
-						success: false,
-						message: `포트 포워딩 설정 실패: ${err.message}`
-					});
-					return;
-				}
+
+			localServer = createServer((socket) => {
+				// 로컬 포트로 연결이 들어오면, SSH를 통해 원격 서버로 포워딩
+				const srcAddr = socket.remoteAddress || '127.0.0.1';
+				const srcPort = socket.remotePort || 0;
+
+				// localhost를 IPv4로 강제 변환 (IPv6 문제 방지)
+				const targetHost = config.remoteHost === 'localhost' ? '127.0.0.1' : config.remoteHost;
+
+				console.log(`[SSH Forward ${id}] 새 연결: ${srcAddr}:${srcPort} -> ${targetHost}:${config.remotePort}`);
+
+				client.forwardOut(
+					srcAddr,
+					srcPort,
+					targetHost,
+					config.remotePort,
+					(err, stream) => {
+						if (err) {
+							console.error(`[SSH Forward ${id}] forwardOut 실패:`, err.message);
+							socket.destroy();
+							return;
+						}
+
+						console.log(`[SSH Forward ${id}] forwardOut 성공, 스트림 연결됨`);
+
+						// 양방향 파이프 연결 (에러 처리 먼저 설정)
+						let streamClosed = false;
+						let socketClosed = false;
+
+						const cleanup = () => {
+							if (!streamClosed) {
+								streamClosed = true;
+								stream.end();
+							}
+							if (!socketClosed) {
+								socketClosed = true;
+								socket.end();
+							}
+						};
+
+						socket.on('error', (err) => {
+							console.error(`[SSH Forward ${id}] 소켓 에러:`, err.message);
+							cleanup();
+						});
+
+						stream.on('error', (err) => {
+							console.error(`[SSH Forward ${id}] 스트림 에러:`, err.message);
+							cleanup();
+						});
+
+						socket.on('close', () => {
+							console.log(`[SSH Forward ${id}] 로컬 소켓 닫힘`);
+							socketClosed = true;
+							if (!streamClosed) {
+								stream.end();
+								streamClosed = true;
+							}
+						});
+
+						stream.on('close', () => {
+							console.log(`[SSH Forward ${id}] SSH 스트림 닫힘`);
+							streamClosed = true;
+							if (!socketClosed) {
+								socket.end();
+								socketClosed = true;
+							}
+						});
+
+						// 파이프 연결 (체이닝 방식)
+						console.log(`[SSH Forward ${id}] 파이프 연결 시작`);
+						socket.pipe(stream).pipe(socket);
+					}
+				);
+			});
+
+			localServer.listen(config.localPort, bindAddress, () => {
+				console.log(`[SSH Forward ${id}] 로컬 서버 시작: ${bindAddress}:${config.localPort}`);
 
 				const updatedConfig = { ...config, id, status: 'active' as const };
 				const existingForward = activeForwards.get(id);
 
 				if (existingForward) {
-					// 기존 클라이언트 종료
+					// 기존 리소스 정리
 					try {
 						existingForward.client.end();
+						existingForward.server.close();
 					} catch (e) {
 						// 무시
 					}
 					existingForward.client = client;
-					existingForward.server = port;
+					existingForward.server = localServer!;
 					existingForward.config = updatedConfig;
 				} else {
 					activeForwards.set(id, {
 						config: updatedConfig,
 						client,
-						server: port,
+						server: localServer!,
 						reconnectAttempts: 0,
 						isReconnecting: false
 					});
@@ -214,29 +285,35 @@ async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise
 					config: updatedConfig
 				});
 			});
-		});
 
-		client.on('tcp connection', (info, accept) => {
-			// 로컬 포트로 들어온 연결을 원격 서버로 포워딩
-			const stream = accept();
+			localServer.on('error', (err: any) => {
+				console.error(`[SSH Forward ${id}] 로컬 서버 에러:`, err.message);
 
-			client.forwardOut(
-				info.srcIP,
-				info.srcPort,
-				config.remoteHost,
-				config.remotePort,
-				(err, upstream) => {
-					if (err) {
-						stream.end();
-						return;
+				// 포트가 이미 사용 중인 경우
+				if (err.code === 'EADDRINUSE') {
+					client.end();
+					if (!activeForwards.has(id)) {
+						resolve({
+							success: false,
+							message: `포트 ${config.localPort}가 이미 사용 중입니다`
+						});
 					}
-					stream.pipe(upstream).pipe(stream);
 				}
-			);
+			});
 		});
 
 		client.on('error', (err) => {
-			console.error(`[SSH Forward ${id}] 연결 오류:`, err.message);
+			console.error(`[SSH Forward ${id}] SSH 연결 오류:`, err.message);
+
+			// 로컬 서버가 생성되었으면 정리
+			if (localServer) {
+				try {
+					localServer.close();
+				} catch (e) {
+					// 무시
+				}
+			}
+
 			// activeForwards에 아직 없으면 초기 연결 실패
 			if (!activeForwards.has(id)) {
 				resolve({
@@ -249,13 +326,23 @@ async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise
 
 		client.on('close', (hadError) => {
 			const forward = activeForwards.get(id);
+
+			// 로컬 서버 정리
+			if (localServer) {
+				try {
+					localServer.close();
+				} catch (e) {
+					// 무시
+				}
+			}
+
 			// Map에서 삭제되었으면 수동으로 중지한 것이므로 재연결 안 함
 			if (!forward) {
 				console.log(`[SSH Forward ${id}] 연결 종료 (수동 중지)`);
 				return;
 			}
 
-			console.log(`[SSH Forward ${id}] 연결 종료 (에러: ${hadError})`);
+			console.log(`[SSH Forward ${id}] SSH 연결 종료 (에러: ${hadError})`);
 
 			// 최대 재시도 횟수를 초과하지 않았으면 재연결 시도
 			if (forward.reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !forward.isReconnecting) {
@@ -265,7 +352,7 @@ async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise
 		});
 
 		client.on('end', () => {
-			console.log(`[SSH Forward ${id}] 연결 끊김`);
+			console.log(`[SSH Forward ${id}] SSH 연결 끊김`);
 		});
 
 		// SSH 연결 시작
@@ -333,6 +420,15 @@ export async function stopSSHForward(id: string): Promise<SSHForwardResult> {
 		// Map에서 먼저 제거 (close 이벤트에서 재연결 시도 방지)
 		activeForwards.delete(id);
 
+		// 로컬 서버 종료
+		if (forward.server) {
+			try {
+				forward.server.close();
+			} catch (e) {
+				console.error(`[SSH Forward ${id}] 로컬 서버 종료 실패:`, e);
+			}
+		}
+
 		// 모든 이벤트 리스너 제거
 		forward.client.removeAllListeners();
 
@@ -342,7 +438,7 @@ export async function stopSSHForward(id: string): Promise<SSHForwardResult> {
 			console.log(`[SSH Forward ${id}] 종료 중 에러 무시:`, err.message);
 		});
 
-		// 연결 종료
+		// SSH 연결 종료
 		forward.client.end();
 
 		// 강제 종료
