@@ -26,7 +26,6 @@
                 sshAlias: "SSH config 파일에 저장된 별칭을 사용하거나 수동으로 입력합니다",
                 sshHost: "SSH 접속할 서버의 주소입니다 (IP 또는 도메인)",
                 sshPort: "SSH 서버의 포트 번호입니다 (기본값: 22)",
-                sshUser: "SSH 접속에 사용할 사용자 이름입니다",
         };
 </script>
 
@@ -265,26 +264,6 @@
                                                         class="glass-input w-full"
                                                 />
                                         </div>
-                                </div>
-
-                                <div>
-                                        <label
-                                                for="sshUser"
-                                                class="text-xs text-slate-400 flex items-center gap-1"
-                                        >
-                                                SSH User
-                                                <Tooltip
-                                                        text={tooltips.sshUser}
-                                                />
-                                        </label>
-                                        <input
-                                                id="sshUser"
-                                                type="text"
-                                                bind:value={formData.sshUser}
-                                                placeholder="ubuntu"
-                                                required
-                                                class="glass-input w-full"
-                                        />
                                 </div>
                         </div>
                 </div>

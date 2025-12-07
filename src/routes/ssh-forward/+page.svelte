@@ -31,6 +31,7 @@
         let sshConfigPath = "";
         let selectedAlias = "";
         let statusCheckInterval: ReturnType<typeof setInterval> | null = null;
+        let findingPort = false;
 
         async function loadForwards() {
                 loading = true;
@@ -89,7 +90,7 @@
                         if (data.success) {
                                 success = data.message;
                                 showForm = false;
-                                resetForm();
+                                await resetForm();
                                 await loadForwards();
                         } else {
                                 error = data.message || "Tunnel start failed";
@@ -126,37 +127,84 @@
                 }
         }
 
-        function resetForm() {
+        async function findAvailablePort() {
+                findingPort = true;
+                try {
+                        const response = await fetch("/api/ports", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                        action: "find-available",
+                                        startPort: 50000,
+                                        endPort: 60000,
+                                }),
+                        });
+                        const data = await response.json();
+
+                        if (data.success && data.port) {
+                                formData.localPort = data.port;
+                        }
+                } catch (e) {
+                        console.error("Failed to find available port:", e);
+                } finally {
+                        findingPort = false;
+                }
+        }
+
+        async function resetForm() {
                 formData = {
                         name: "",
                         remoteHost: "localhost",
                         remotePort: null as any,
                         localPort: null as any,
                         localBindAddress: "127.0.0.1",
-                sshUser: "",
-                sshHost: "",
-                sshPort: 22,
-                author: "",
-        };
+                        sshUser: "",
+                        sshHost: "",
+                        sshPort: 22,
+                        author: "",
+                };
                 selectedAlias = "";
+
+                // 자동으로 사용 가능한 포트 찾기
+                await findAvailablePort();
         }
 
         function handleAliasChange(alias: string) {
                 selectedAlias = alias;
                 const entry = configEntries.find((item) => item.alias === alias);
-                if (!entry) return;
+                if (!entry) {
+                        // Manual 모드: user를 빈 문자열로 설정하여 시스템 사용자 사용
+                        formData = {
+                                ...formData,
+                                sshUser: "",
+                        };
+                        return;
+                }
 
+                // SSH Alias 선택: Config의 user 사용 (없으면 빈 문자열)
                 formData = {
                         ...formData,
                         sshHost: entry.hostName || entry.alias,
                         sshPort: entry.port ?? 22,
-                        sshUser: entry.user || formData.sshUser,
+                        sshUser: entry.user || "",
                 };
         }
 
-        function applyToTunnel(entry: SSHConfigEntry) {
+        async function applyToTunnel(entry: SSHConfigEntry) {
+                await resetForm();
                 showForm = true;
                 handleAliasChange(entry.alias);
+        }
+
+        async function toggleForm() {
+                if (!showForm) {
+                        // 폼을 열 때 자동으로 사용 가능한 포트 찾기
+                        await resetForm();
+                        showForm = true;
+                } else {
+                        // 폼을 닫을 때
+                        showForm = false;
+                }
         }
 
         onMount(() => {
@@ -189,7 +237,7 @@
                 </div>
                 <div class="flex gap-1">
                         <button
-                                on:click={() => (showForm = !showForm)}
+                                on:click={toggleForm}
                                 class="glass-btn-secondary"
                         >
                                 {showForm ? "Cancel" : "New Tunnel"}
@@ -288,7 +336,7 @@
                         <div class="text-center py-8 glass-card border-dashed border-slate-700">
                                 <p class="text-slate-500 text-sm mb-2">No active tunnels</p>
                                 <button
-                                        on:click={() => (showForm = true)}
+                                        on:click={toggleForm}
                                         class="glass-btn-primary"
                                 >
                                         Create Tunnel

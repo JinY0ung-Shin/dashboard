@@ -2,7 +2,7 @@ import { Client } from 'ssh2';
 import { createServer, type Server } from 'net';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
+import { homedir, userInfo } from 'os';
 import db from './db';
 import type { SSHForwardConfig, SSHForwardResult } from '$lib/types';
 
@@ -358,10 +358,12 @@ async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise
 		// SSH 연결 시작
 		try {
 			const privateKey = findSSHKey();
+			// sshUser가 지정되지 않았으면 현재 시스템 사용자 사용
+			const username = config.sshUser || userInfo().username;
 			const connectOptions: any = {
 				host: config.sshHost,
 				port: config.sshPort,
-				username: config.sshUser,
+				username,
 				tryKeyboard: true,
 				readyTimeout: 10000,
 				keepaliveInterval: 10000, // 10초마다 keepalive
