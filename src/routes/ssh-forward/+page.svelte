@@ -208,10 +208,10 @@
 		loadForwards();
 		loadConfigEntries();
 
-		// 5초마다 상태 확인
+		// 1분마다 상태 확인
 		statusCheckInterval = setInterval(() => {
 			loadForwards();
-		}, 5000);
+		}, 60000);
 	});
 
 	onDestroy(() => {

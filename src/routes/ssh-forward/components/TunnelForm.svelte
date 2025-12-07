@@ -116,7 +116,7 @@
 				<div class="grid grid-cols-2 gap-2">
 					<div>
 						<label for="localPort" class="text-xs text-slate-400 flex items-center gap-1">
-							Local Port (자동 설정)
+							Local Port (기본값 자동 설정)
 							<Tooltip text={tooltips.localPort} />
 						</label>
 						<input
