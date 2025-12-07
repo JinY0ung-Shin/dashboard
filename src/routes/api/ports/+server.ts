@@ -15,7 +15,8 @@ export const GET: RequestHandler = async () => {
 			return {
 				...port,
 				description: desc?.description,
-				author: desc?.author
+				author: desc?.author,
+				tags: desc?.tags
 			};
 		});
 

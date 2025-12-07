@@ -23,8 +23,9 @@ db.pragma('foreign_keys = ON');
 db.exec(`
 	CREATE TABLE IF NOT EXISTS ports (
 		port INTEGER PRIMARY KEY,
-		description TEXT NOT NULL,
+		description TEXT,
 		author TEXT,
+		tags TEXT, -- JSON array of tags (e.g., ["backend", "api", "prod"])
 
 		-- SSH 터널 관련 정보 (nullable - 일반 포트는 NULL)
 		ssh_tunnel_id TEXT UNIQUE,

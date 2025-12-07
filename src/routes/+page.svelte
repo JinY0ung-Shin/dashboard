@@ -24,6 +24,7 @@
 	let editForm = {
 		description: "",
 		author: "",
+		tags: "",
 	};
 	let success = "";
 
@@ -82,12 +83,25 @@
 		editingPort = port.port;
 		editForm.description = port.description || "";
 		editForm.author = port.author || "";
+		editForm.tags = port.tags ? port.tags.join(", ") : "";
 	}
 
 	function cancelEdit() {
 		editingPort = null;
 		editForm.description = "";
 		editForm.author = "";
+		editForm.tags = "";
+	}
+
+	function handleKeyDown(event: KeyboardEvent, port: number) {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			saveDescription(port);
+		}
+	}
+
+	function searchByTag(tag: string) {
+		searchTerm = tag;
 	}
 
 	async function saveDescription(port: number) {
@@ -95,6 +109,11 @@
 		success = "";
 
 		try {
+			const tags = editForm.tags
+				.split(",")
+				.map((t) => t.trim().toLowerCase())
+				.filter((t) => t.length > 0);
+
 			const response = await fetch("/api/port-descriptions", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -102,6 +121,7 @@
 					port,
 					description: editForm.description,
 					author: editForm.author,
+					tags: tags.length > 0 ? tags : undefined,
 				}),
 			});
 			const data = await response.json();
@@ -168,7 +188,15 @@
 				(p.description &&
 					p.description
 						.toLowerCase()
-						.includes(searchTerm.toLowerCase())),
+						.includes(searchTerm.toLowerCase())) ||
+				(p.author &&
+					p.author
+						.toLowerCase()
+						.includes(searchTerm.toLowerCase())) ||
+				(p.tags &&
+					p.tags.some((tag) =>
+						tag.toLowerCase().includes(searchTerm.toLowerCase()),
+					)),
 		)
 		.sort((a, b) => {
 			// 설명이 있는 포트를 먼저 표시
@@ -293,6 +321,10 @@
 							>
 							<th
 								class="text-left py-1 px-2 font-medium text-slate-400"
+								>Tags</th
+							>
+							<th
+								class="text-left py-1 px-2 font-medium text-slate-400"
 								>Actions</th
 							>
 						</tr>
@@ -347,6 +379,8 @@
 											type="text"
 											placeholder="Description"
 											bind:value={editForm.description}
+											on:keydown={(e) =>
+												handleKeyDown(e, port.port)}
 											class="glass-input"
 										/>
 									{:else}
@@ -361,12 +395,40 @@
 											type="text"
 											placeholder="Registrant"
 											bind:value={editForm.author}
+											on:keydown={(e) =>
+												handleKeyDown(e, port.port)}
 											class="glass-input"
 										/>
 									{:else}
 										<span class="text-slate-400"
 											>{port.author || "-"}</span
 										>
+									{/if}
+								</td>
+								<td class="py-1 px-2">
+									{#if editingPort === port.port}
+										<input
+											type="text"
+											placeholder="tag1, tag2, tag3"
+											bind:value={editForm.tags}
+											on:keydown={(e) =>
+												handleKeyDown(e, port.port)}
+											class="glass-input"
+										/>
+									{:else if port.tags && port.tags.length > 0}
+										<div class="flex flex-wrap gap-1">
+											{#each port.tags as tag}
+												<button
+													on:click={() => searchByTag(tag)}
+													class="px-1.5 py-0.5 text-xs rounded bg-blue-900/50 text-blue-300 border border-blue-800 hover:bg-blue-800 hover:border-blue-700 cursor-pointer transition-colors"
+													title="Search by tag: {tag}"
+												>
+													#{tag}
+												</button>
+											{/each}
+										</div>
+									{:else}
+										<span class="text-slate-600">-</span>
 									{/if}
 								</td>
 								<td class="py-1 px-2">

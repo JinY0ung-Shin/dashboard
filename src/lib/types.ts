@@ -7,12 +7,14 @@ export interface PortInfo {
 	processName?: string;
 	description?: string;
 	author?: string;
+	tags?: string[]; // Array of hashtags
 }
 
 export interface PortDescription {
 	port: number;
-	description: string;
+	description?: string;
 	author?: string;
+	tags?: string[]; // Array of hashtags
 }
 
 export interface SSHForwardConfig {
