@@ -1,0 +1,13 @@
+model_list: []
+  # 모델은 API를 통해 동적으로 추가됩니다
+  # SSH 터널로 연결된 원격 LLM이 자동으로 등록됩니다
+
+litellm_settings:
+  drop_params: true
+  success_callback: ["langfuse"]
+  failure_callback: ["langfuse"]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  store_model_in_db: true
