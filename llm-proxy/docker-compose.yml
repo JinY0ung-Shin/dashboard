@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: litellm
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-litellm_secure_password}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     healthcheck:
@@ -34,10 +34,6 @@ services:
       - ./config.yaml:/app/config.yaml
     command: ['--config', '/app/config.yaml', '--port', '4000', '--detailed_debug']
     restart: unless-stopped
-
-volumes:
-  postgres_data:
-    driver: local
 
 networks:
   litellm-network:
