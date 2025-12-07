@@ -1,8 +1,4 @@
-import type {
-	LiteLLMAddModelRequest,
-	LiteLLMModel,
-	LiteLLMDeleteModelRequest
-} from '$lib/types';
+import type { LiteLLMAddModelRequest, LiteLLMModel, LiteLLMDeleteModelRequest } from '$lib/types';
 
 // LiteLLM 서버 설정
 const LITELLM_BASE_URL = process.env.LITELLM_BASE_URL || 'http://localhost:4000';

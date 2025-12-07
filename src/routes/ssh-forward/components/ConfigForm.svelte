@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SSHConfigEntry } from "$lib/types";
+	import type { SSHConfigEntry } from '$lib/types';
 
 	export let configForm: SSHConfigEntry;
 	export let configLoading = false;
@@ -13,26 +13,26 @@
 			localForwards: [
 				...(configForm.localForwards || []),
 				{
-					localHost: "127.0.0.1",
+					localHost: '127.0.0.1',
 					localPort: 0,
-					remoteHost: "",
-					remotePort: 0,
-				},
-			],
+					remoteHost: '',
+					remotePort: 0
+				}
+			]
 		};
 	}
 
 	function removeForwardRow(index: number) {
 		configForm = {
 			...configForm,
-			localForwards: (configForm.localForwards || []).filter((_, i) => i !== index),
+			localForwards: (configForm.localForwards || []).filter((_, i) => i !== index)
 		};
 	}
 </script>
 
 <div class="glass-card animate-slide-up border-l-4 border-l-violet-500">
 	<h4 class="text-lg font-semibold text-white mb-4">
-		{editingAlias ? `Edit alias (${editingAlias})` : "New SSH alias"}
+		{editingAlias ? `Edit alias (${editingAlias})` : 'New SSH alias'}
 	</h4>
 	<form on:submit|preventDefault={onSubmit} class="space-y-6">
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -94,7 +94,9 @@
 			</div>
 
 			<div class="space-y-2">
-				<label for="proxyJump" class="text-sm font-medium text-slate-300">ProxyJump (optional)</label>
+				<label for="proxyJump" class="text-sm font-medium text-slate-300"
+					>ProxyJump (optional)</label
+				>
 				<input
 					id="proxyJump"
 					type="text"
@@ -124,9 +126,7 @@
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-semibold text-slate-200">LocalForward rules</p>
-					<p class="text-xs text-slate-500">
-						Specify LocalForward entries stored in the alias.
-					</p>
+					<p class="text-xs text-slate-500">Specify LocalForward entries stored in the alias.</p>
 				</div>
 				<button type="button" class="glass-btn-secondary text-sm" on:click={addForwardRow}>
 					Add LocalForward
@@ -201,11 +201,9 @@
 						class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
 					></div>
 				{/if}
-				<span>{editingAlias ? "Update Alias" : "Save Alias"}</span>
+				<span>{editingAlias ? 'Update Alias' : 'Save Alias'}</span>
 			</button>
-			<button type="button" class="glass-btn-secondary" on:click={onCancel}>
-				Cancel
-			</button>
+			<button type="button" class="glass-btn-secondary" on:click={onCancel}> Cancel </button>
 		</div>
 	</form>
 </div>

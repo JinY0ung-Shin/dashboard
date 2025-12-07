@@ -38,7 +38,9 @@ export async function scanPorts(): Promise<PortInfo[]> {
 
 				for (const line of lines) {
 					// ss 출력 파싱: tcp   LISTEN 0      128    0.0.0.0:22    0.0.0.0:*    users:(("sshd",pid=1234,fd=3))
-					const ssMatch = line.match(/(tcp|udp)\s+\S+\s+\S+\s+\S+\s+(?:\S+:)?(\d+)\s+.*?(?:users:\(\("([^"]+)",pid=(\d+))?/i);
+					const ssMatch = line.match(
+						/(tcp|udp)\s+\S+\s+\S+\s+\S+\s+(?:\S+:)?(\d+)\s+.*?(?:users:\(\("([^"]+)",pid=(\d+))?/i
+					);
 
 					if (ssMatch) {
 						const [, protocol, port, processName, pid] = ssMatch;
@@ -55,7 +57,9 @@ export async function scanPorts(): Promise<PortInfo[]> {
 						}
 					} else {
 						// netstat 출력 파싱 (fallback)
-						const netstatMatch = line.match(/(tcp|udp)\s+\S+\s+\S+\s+(?:\S+:)?(\d+)\s+.*?(\d+)\/(\S+)/);
+						const netstatMatch = line.match(
+							/(tcp|udp)\s+\S+\s+\S+\s+(?:\S+:)?(\d+)\s+.*?(\d+)\/(\S+)/
+						);
 						if (netstatMatch) {
 							const [, protocol, port, pid, processName] = netstatMatch;
 							const portNum = parseInt(port);
@@ -81,16 +85,19 @@ export async function scanPorts(): Promise<PortInfo[]> {
 	}
 
 	// 중복 제거 및 정렬
-	const uniquePorts = Array.from(
-		new Map(ports.map(p => [p.port, p])).values()
-	).sort((a, b) => a.port - b.port);
+	const uniquePorts = Array.from(new Map(ports.map((p) => [p.port, p])).values()).sort(
+		(a, b) => a.port - b.port
+	);
 
 	return uniquePorts;
 }
 
-export async function findAvailablePort(startPort: number = 3000, endPort: number = 65535): Promise<number> {
+export async function findAvailablePort(
+	startPort: number = 3000,
+	endPort: number = 65535
+): Promise<number> {
 	const usedPorts = await scanPorts();
-	const usedPortNumbers = new Set(usedPorts.map(p => p.port));
+	const usedPortNumbers = new Set(usedPorts.map((p) => p.port));
 
 	for (let port = startPort; port <= endPort; port++) {
 		if (!usedPortNumbers.has(port)) {

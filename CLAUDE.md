@@ -13,22 +13,26 @@
 ## 기술 스택
 
 ### Frontend
+
 - **SvelteKit 5**: 메인 프레임워크
 - **TailwindCSS**: 스타일링
 - **TypeScript**: 타입 안정성
 
 ### Backend
+
 - **Node.js + TypeScript**: 서버
 - **better-sqlite3**: 데이터베이스
 - **ssh2**: SSH 터널링
 
 ### 데이터 저장
+
 - **SQLite**: 로컬 데이터베이스 (WAL 모드)
 - **위치**: `data/dashboard.db`
 
 ## 주요 기능
 
 ### 1. Dashboard (포트 관리)
+
 - 실시간 포트 스캐닝 (netstat/ss 사용)
 - 포트 정보 조회: 포트 번호, 프로토콜, 상태, 프로세스
 - **포트별 메타데이터**:
@@ -39,6 +43,7 @@
 - 사용 가능한 포트 찾기
 
 ### 2. SSH Forwarding (SSH 터널)
+
 - 원격 서버의 서비스를 로컬 포트로 포워딩
 - **자동 기능**:
   - 재연결 (최대 5회, 3초 간격)
@@ -55,6 +60,7 @@
   - error: 최대 재시도 초과
 
 ### 3. LiteLLM Integration (LLM 프록시)
+
 - **목적**: 원격 서버의 LLM을 SSH 터널로 가져와 통합 관리
 - **Docker Compose**: PostgreSQL + LiteLLM Proxy
 - **자동 등록**: SSH 터널 생성 시 LiteLLM에 모델 자동 추가/삭제
@@ -96,10 +102,12 @@ CREATE TABLE ports (
 ```
 
 ### 데이터 구분
+
 - **일반 포트**: `ssh_tunnel_id IS NULL`
 - **SSH 터널 포트**: `ssh_tunnel_id IS NOT NULL`
 
 ### 인덱스
+
 - `idx_ports_ssh_tunnel_id`: SSH 터널 ID 조회 최적화
 - `idx_ports_ssh_status`: 상태별 필터링 최적화
 - `idx_ports_author`: 등록자별 필터링 최적화
@@ -107,6 +115,7 @@ CREATE TABLE ports (
 ## 아키텍처
 
 ### SQLite 단일 통합 테이블
+
 - `ports` 테이블 하나로 모든 데이터 관리
 - SSH 터널 컬럼은 nullable로 설계
 - **장점**:
@@ -118,6 +127,7 @@ CREATE TABLE ports (
 ## 핵심 로직
 
 ### SSH 터널 생성 흐름
+
 1. 사용자가 SSH Forward 폼 작성 (LiteLLM 옵션 포함 가능)
 2. `createSSHForward()` 호출
 3. SSH 연결 설정 (`setupSSHConnection()`)
@@ -134,6 +144,7 @@ CREATE TABLE ports (
 5. Dashboard에서 즉시 조회 가능
 
 ### LiteLLM 통합 흐름
+
 1. **SSH 터널 생성 시**:
    - 사용자가 "LiteLLM 자동 등록" 체크박스 활성화
    - 모델 이름 입력 (예: "my-llm")
@@ -149,6 +160,7 @@ CREATE TABLE ports (
    - 터널 및 DB 레코드 삭제
 
 ### Dashboard ↔ SSH Forward 동기화
+
 - **Dashboard에서 author 수정** → DB 업데이트
 - **SSH Forward 조회** → `listActiveForwards()`가 DB에서 최신 author 조회
 - **동기화 메커니즘**: 메모리(activeForwards Map) + DB 병합
@@ -156,17 +168,21 @@ CREATE TABLE ports (
 ```typescript
 // SSH Forward가 최신 데이터를 가져오는 방법
 export function listActiveForwards(): SSHForwardConfig[] {
-  return Array.from(activeForwards.values()).map(forward => {
-    // DB에서 최신 author 조회
-    const dbData = db.prepare(`
+	return Array.from(activeForwards.values()).map((forward) => {
+		// DB에서 최신 author 조회
+		const dbData = db
+			.prepare(
+				`
       SELECT description, author FROM ports WHERE ssh_tunnel_id = ?
-    `).get(forward.config.id);
+    `
+			)
+			.get(forward.config.id);
 
-    return {
-      ...forward.config,
-      author: dbData?.author || undefined
-    };
-  });
+		return {
+			...forward.config,
+			author: dbData?.author || undefined
+		};
+	});
 }
 ```
 
@@ -218,6 +234,7 @@ llm-proxy/                         # LiteLLM Proxy
 ## 중요 개념
 
 ### SSH 터널 상태 관리
+
 - **메모리**: `activeForwards: Map<string, ActiveForward>`
   - SSH 클라이언트 객체
   - 서버 객체
@@ -227,6 +244,7 @@ llm-proxy/                         # LiteLLM Proxy
   - 서버 재시작 시 복원 소스
 
 ### 재연결 메커니즘
+
 ```typescript
 // 연결 끊김 감지
 client.on('close', (hadError) => {
@@ -239,6 +257,7 @@ client.on('close', (hadError) => {
 ```
 
 ### 포트 스캐닝
+
 - **Linux/Mac**: `ss -tulpn` 또는 `netstat`
 - **Windows**: `netstat -ano`
 - **결과 파싱**: 정규표현식으로 포트, 프로토콜, PID 추출
@@ -246,18 +265,21 @@ client.on('close', (hadError) => {
 ## 일반적인 작업
 
 ### 새 기능 추가 시
+
 1. `src/lib/types.ts`에 타입 추가
 2. DB 스키마 변경 필요 시 `src/lib/server/db.ts` 수정
 3. API 엔드포인트: `src/routes/api/` 추가
 4. UI 컴포넌트: `src/routes/` 또는 `components/` 추가
 
 ### DB 스키마 변경 시
+
 1. `src/lib/server/db.ts`의 CREATE TABLE 수정
 2. 마이그레이션 로직 추가 (필요 시)
 3. 관련 CRUD 함수 업데이트
 4. 타입 정의 업데이트
 
 ### 버그 수정 시
+
 - **SSH 관련**: `src/lib/server/sshForwarder.ts`
 - **포트 스캔 관련**: `src/lib/server/portScanner.ts`
 - **DB 관련**: `src/lib/server/portDescriptions.ts` 또는 `db.ts`
@@ -273,6 +295,7 @@ client.on('close', (hadError) => {
 ## 디버깅 팁
 
 ### 로그 확인
+
 모든 로그는 `[PortKnox]`, `[PortKnox SSH]`, `[PortKnox Migration]` 접두사 사용
 
 ```bash
@@ -284,6 +307,7 @@ npm run dev  # 콘솔에 출력
 ```
 
 ### DB 직접 조회
+
 ```bash
 npm install -g better-sqlite3
 
@@ -294,18 +318,22 @@ sqlite3 data/dashboard.db "SELECT * FROM ports"
 ### 일반적인 문제
 
 **SSH 터널이 연결 안 됨**
+
 - SSH 키 인증 확인: `ssh user@host`로 테스트
 - Windows: ssh-agent 서비스 실행 확인
 
 **Dashboard에서 수정이 SSH Forward에 반영 안 됨**
+
 - 페이지 새로고침 필요
 - `listActiveForwards()`가 DB에서 최신 데이터 조회하는지 확인
 
 **포트 스캔 안 됨**
+
 - 명령어 권한 확인
 - 로그에서 에러 메시지 확인
 
 **LiteLLM 연결 안 됨**
+
 - Docker Compose 상태 확인: `cd llm-proxy && docker-compose ps`
 - LiteLLM 로그 확인: `docker-compose -f llm-proxy/docker-compose.yml logs -f litellm`
 - 환경변수 확인: `.env` 파일에 `LITELLM_BASE_URL`, `LITELLM_MASTER_KEY` 설정
@@ -347,6 +375,7 @@ docker-compose down
 ## 주요 업데이트 히스토리
 
 ### 2025-12-07
+
 - ✅ **LiteLLM 통합 기능 추가**
   - Docker Compose로 PostgreSQL + LiteLLM Proxy 관리
   - SSH 터널 생성 시 LiteLLM에 자동으로 모델 등록
@@ -356,6 +385,7 @@ docker-compose down
   - SSH Forward UI에 LiteLLM 자동 등록 옵션 추가
 
 ### 2025-12-06
+
 - ✅ Dashboard에 등록자(author) 컬럼 추가
 - ✅ SSH Forward와 Dashboard 간 author 정보 동기화
 - ✅ SQLite 단일 통합 테이블 구조로 설계

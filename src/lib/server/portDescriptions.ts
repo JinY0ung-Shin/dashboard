@@ -18,7 +18,7 @@ export function getAllPortDescriptions(): PortDescription[] {
 	const stmt = db.prepare('SELECT port, description, author, tags FROM ports ORDER BY port');
 	const rows = stmt.all() as any[];
 
-	return rows.map(row => ({
+	return rows.map((row) => ({
 		port: row.port,
 		description: row.description,
 		author: row.author,
@@ -26,7 +26,12 @@ export function getAllPortDescriptions(): PortDescription[] {
 	}));
 }
 
-export function setPortDescription(port: number, description: string, author?: string, tags?: string[]): void {
+export function setPortDescription(
+	port: number,
+	description: string,
+	author?: string,
+	tags?: string[]
+): void {
 	const stmt = db.prepare(`
 		INSERT INTO ports (port, description, author, tags)
 		VALUES (?, ?, ?, ?)

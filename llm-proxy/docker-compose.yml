@@ -11,9 +11,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      test: ['CMD-SHELL', 'pg_isready -U litellm']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,12 +28,12 @@ services:
       DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD:-litellm_secure_password}@postgres:5432/litellm
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-1234}
       LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:-sk-salt-1234}
-      STORE_MODEL_IN_DB: "True"
+      STORE_MODEL_IN_DB: 'True'
     volumes:
       - ./config.yaml:/app/config.yaml
     ports:
-      - "4000:4000"
-    command: ["--config", "/app/config.yaml", "--port", "4000", "--detailed_debug"]
+      - '4000:4000'
+    command: ['--config', '/app/config.yaml', '--port', '4000', '--detailed_debug']
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,13 +1,17 @@
 <script lang="ts">
-	import type { SSHForwardConfig } from "$lib/types";
+	import type { SSHForwardConfig } from '$lib/types';
 
 	export let forward: SSHForwardConfig;
 	export let onStop: (id: string) => void;
 
-	$: statusColor = forward.status === 'active' ? 'bg-green-500' :
-	                 forward.status === 'error' ? 'bg-red-500' : 'bg-yellow-500';
-	$: statusText = forward.status === 'active' ? '' :
-	                forward.status === 'error' ? '연결 실패' : '재연결 중...';
+	$: statusColor =
+		forward.status === 'active'
+			? 'bg-green-500'
+			: forward.status === 'error'
+				? 'bg-red-500'
+				: 'bg-yellow-500';
+	$: statusText =
+		forward.status === 'active' ? '' : forward.status === 'error' ? '연결 실패' : '재연결 중...';
 </script>
 
 <div class="glass-card">
@@ -36,15 +40,21 @@
 	</div>
 
 	<div class="space-y-1 mb-2 text-xs">
-		<div class="flex items-center justify-between py-1 px-2 rounded bg-slate-800 border border-slate-700">
+		<div
+			class="flex items-center justify-between py-1 px-2 rounded bg-slate-800 border border-slate-700"
+		>
 			<span class="text-slate-500">Local</span>
-			<span class="font-mono text-blue-400">{forward.localBindAddress || '127.0.0.1'}:{forward.localPort}</span>
+			<span class="font-mono text-blue-400"
+				>{forward.localBindAddress || '127.0.0.1'}:{forward.localPort}</span
+			>
 		</div>
 		{#if forward.localBindAddress === '0.0.0.0'}
 			<div class="text-[10px] text-yellow-400 px-2">외부 접근 가능</div>
 		{/if}
 
-		<div class="flex items-center justify-between py-1 px-2 rounded bg-slate-800 border border-slate-700">
+		<div
+			class="flex items-center justify-between py-1 px-2 rounded bg-slate-800 border border-slate-700"
+		>
 			<span class="text-slate-500">Remote</span>
 			<span class="font-mono text-violet-400">{forward.remoteHost}:{forward.remotePort}</span>
 		</div>

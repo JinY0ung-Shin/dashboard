@@ -7,10 +7,10 @@ export const GET: RequestHandler = async () => {
 	try {
 		const ports = await scanPorts();
 		const descriptions = getAllPortDescriptions();
-		const descriptionMap = new Map(descriptions.map(d => [d.port, d]));
+		const descriptionMap = new Map(descriptions.map((d) => [d.port, d]));
 
 		// 포트 정보에 저장된 설명 병합
-		const portsWithDescriptions = ports.map(port => {
+		const portsWithDescriptions = ports.map((port) => {
 			const desc = descriptionMap.get(port.port);
 			return {
 				...port,

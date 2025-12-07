@@ -119,12 +119,7 @@ function generateId(): string {
 
 function findSSHKey(): Buffer | undefined {
 	const sshDir = join(homedir(), '.ssh');
-	const keyFiles = [
-		'id_ed25519',
-		'id_rsa',
-		'id_ecdsa',
-		'id_dsa'
-	];
+	const keyFiles = ['id_ed25519', 'id_rsa', 'id_ecdsa', 'id_dsa'];
 
 	for (const keyFile of keyFiles) {
 		const keyPath = join(sshDir, keyFile);
@@ -155,7 +150,9 @@ async function reconnectSSHForward(id: string, config: SSHForwardConfig): Promis
 	forward.reconnectAttempts += 1;
 	forward.config.status = 'inactive';
 
-	console.log(`[SSH Forward ${id}] 재연결 시도 ${forward.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
+	console.log(
+		`[SSH Forward ${id}] 재연결 시도 ${forward.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`
+	);
 
 	setTimeout(async () => {
 		try {
@@ -206,70 +203,66 @@ async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise
 				// localhost를 IPv4로 강제 변환 (IPv6 문제 방지)
 				const targetHost = config.remoteHost === 'localhost' ? '127.0.0.1' : config.remoteHost;
 
-				console.log(`[SSH Forward ${id}] 새 연결: ${srcAddr}:${srcPort} -> ${targetHost}:${config.remotePort}`);
-
-				client.forwardOut(
-					srcAddr,
-					srcPort,
-					targetHost,
-					config.remotePort,
-					(err, stream) => {
-						if (err) {
-							console.error(`[SSH Forward ${id}] forwardOut 실패:`, err.message);
-							socket.destroy();
-							return;
-						}
-
-						console.log(`[SSH Forward ${id}] forwardOut 성공, 스트림 연결됨`);
-
-						// 양방향 파이프 연결 (에러 처리 먼저 설정)
-						let streamClosed = false;
-						let socketClosed = false;
-
-						const cleanup = () => {
-							if (!streamClosed) {
-								streamClosed = true;
-								stream.end();
-							}
-							if (!socketClosed) {
-								socketClosed = true;
-								socket.end();
-							}
-						};
-
-						socket.on('error', (err) => {
-							console.error(`[SSH Forward ${id}] 소켓 에러:`, err.message);
-							cleanup();
-						});
-
-						stream.on('error', (err) => {
-							console.error(`[SSH Forward ${id}] 스트림 에러:`, err.message);
-							cleanup();
-						});
-
-						socket.on('close', () => {
-							console.log(`[SSH Forward ${id}] 로컬 소켓 닫힘`);
-							socketClosed = true;
-							if (!streamClosed) {
-								stream.end();
-								streamClosed = true;
-							}
-						});
-
-						stream.on('close', () => {
-							console.log(`[SSH Forward ${id}] SSH 스트림 닫힘`);
-							streamClosed = true;
-							if (!socketClosed) {
-								socket.end();
-								socketClosed = true;
-							}
-						});
-
-						// 파이프 연결 (체이닝 방식)
-						console.log(`[SSH Forward ${id}] 파이프 연결 시작`);
-						socket.pipe(stream).pipe(socket);
-					}
+				console.log(
+					`[SSH Forward ${id}] 새 연결: ${srcAddr}:${srcPort} -> ${targetHost}:${config.remotePort}`
 				);
+
+				client.forwardOut(srcAddr, srcPort, targetHost, config.remotePort, (err, stream) => {
+					if (err) {
+						console.error(`[SSH Forward ${id}] forwardOut 실패:`, err.message);
+						socket.destroy();
+						return;
+					}
+
+					console.log(`[SSH Forward ${id}] forwardOut 성공, 스트림 연결됨`);
+
+					// 양방향 파이프 연결 (에러 처리 먼저 설정)
+					let streamClosed = false;
+					let socketClosed = false;
+
+					const cleanup = () => {
+						if (!streamClosed) {
+							streamClosed = true;
+							stream.end();
+						}
+						if (!socketClosed) {
+							socketClosed = true;
+							socket.end();
+						}
+					};
+
+					socket.on('error', (err) => {
+						console.error(`[SSH Forward ${id}] 소켓 에러:`, err.message);
+						cleanup();
+					});
+
+					stream.on('error', (err) => {
+						console.error(`[SSH Forward ${id}] 스트림 에러:`, err.message);
+						cleanup();
+					});
+
+					socket.on('close', () => {
+						console.log(`[SSH Forward ${id}] 로컬 소켓 닫힘`);
+						socketClosed = true;
+						if (!streamClosed) {
+							stream.end();
+							streamClosed = true;
+						}
+					});
+
+					stream.on('close', () => {
+						console.log(`[SSH Forward ${id}] SSH 스트림 닫힘`);
+						streamClosed = true;
+						if (!socketClosed) {
+							socket.end();
+							socketClosed = true;
+						}
+					});
+
+					// 파이프 연결 (체이닝 방식)
+					console.log(`[SSH Forward ${id}] 파이프 연결 시작`);
+					socket.pipe(stream).pipe(socket);
+				});
 			});
 
 			localServer.listen(config.localPort, bindAddress, () => {
@@ -463,28 +456,45 @@ export async function stopSSHForward(id: string): Promise<SSHForwardResult> {
 
 	try {
 		// LiteLLM에서 모델 삭제 (있는 경우)
-		const dbData = db.prepare(`
+		const dbData = db
+			.prepare(
+				`
 			SELECT litellm_enabled, litellm_model_id, litellm_model_name, port
 			FROM ports
 			WHERE ssh_tunnel_id = ?
-		`).get(id) as { litellm_enabled: number; litellm_model_id: string | null; litellm_model_name: string | null; port: number } | undefined;
+		`
+			)
+			.get(id) as
+			| {
+					litellm_enabled: number;
+					litellm_model_id: string | null;
+					litellm_model_name: string | null;
+					port: number;
+			  }
+			| undefined;
 
 		console.log(`[PortKnox SSH] Stopping tunnel ${id}, LiteLLM data:`, dbData);
 
 		if (dbData?.litellm_enabled && dbData.litellm_model_id) {
 			try {
-				console.log(`[PortKnox LiteLLM] Deleting model: ${dbData.litellm_model_id} (${dbData.litellm_model_name}) from port ${dbData.port}`);
+				console.log(
+					`[PortKnox LiteLLM] Deleting model: ${dbData.litellm_model_id} (${dbData.litellm_model_name}) from port ${dbData.port}`
+				);
 				const litellmResult = await deleteModelFromLiteLLM(dbData.litellm_model_id);
 				if (litellmResult.success) {
 					console.log(`[PortKnox LiteLLM] Model deleted successfully from LiteLLM`);
 				} else {
-					console.error(`[PortKnox LiteLLM] Failed to delete model from LiteLLM: ${litellmResult.error}`);
+					console.error(
+						`[PortKnox LiteLLM] Failed to delete model from LiteLLM: ${litellmResult.error}`
+					);
 				}
 			} catch (error) {
 				console.error(`[PortKnox LiteLLM] Exception while deleting model:`, error);
 			}
 		} else {
-			console.log(`[PortKnox LiteLLM] No LiteLLM model to delete (enabled: ${dbData?.litellm_enabled}, model_id: ${dbData?.litellm_model_id})`);
+			console.log(
+				`[PortKnox LiteLLM] No LiteLLM model to delete (enabled: ${dbData?.litellm_enabled}, model_id: ${dbData?.litellm_model_id})`
+			);
 		}
 
 		// 재연결 방지
@@ -543,14 +553,18 @@ export async function stopSSHForward(id: string): Promise<SSHForwardResult> {
 
 export function listActiveForwards(): SSHForwardConfig[] {
 	// 메모리의 활성 터널 정보에 DB의 최신 author/description 병합
-	return Array.from(activeForwards.values()).map(forward => {
+	return Array.from(activeForwards.values()).map((forward) => {
 		try {
 			// DB에서 최신 정보 가져오기
-			const dbData = db.prepare(`
+			const dbData = db
+				.prepare(
+					`
 				SELECT description, author
 				FROM ports
 				WHERE ssh_tunnel_id = ?
-			`).get(forward.config.id) as { description: string; author: string | null } | undefined;
+			`
+				)
+				.get(forward.config.id) as { description: string; author: string | null } | undefined;
 
 			if (dbData) {
 				// DB의 최신 author로 업데이트
@@ -574,11 +588,15 @@ export function getForwardById(id: string): SSHForwardConfig | undefined {
 
 	try {
 		// DB에서 최신 정보 가져오기
-		const dbData = db.prepare(`
+		const dbData = db
+			.prepare(
+				`
 			SELECT description, author
 			FROM ports
 			WHERE ssh_tunnel_id = ?
-		`).get(id) as { description: string; author: string | null } | undefined;
+		`
+			)
+			.get(id) as { description: string; author: string | null } | undefined;
 
 		if (dbData) {
 			// DB의 최신 author로 업데이트
@@ -621,7 +639,7 @@ export async function restoreSavedTunnels(): Promise<void> {
 			}
 
 			// 각 복원 사이에 약간의 지연 (동시 연결 제한)
-			await new Promise(resolve => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 
 		console.log(`[PortKnox SSH] 터널 복원 완료`);

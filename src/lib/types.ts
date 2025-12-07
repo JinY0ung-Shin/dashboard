@@ -63,13 +63,13 @@ export interface SSHConfigExtraOption {
 }
 
 export interface SSHConfigEntry {
-        alias: string;
-        hostName?: string;
-        user?: string;
-        port?: number;
-        identityFile?: string;
-        proxyJump?: string;
-        forwardAgent?: boolean;
+	alias: string;
+	hostName?: string;
+	user?: string;
+	port?: number;
+	identityFile?: string;
+	proxyJump?: string;
+	forwardAgent?: boolean;
 	localForwards?: SSHLocalForward[];
 	extras?: SSHConfigExtraOption[];
 }
