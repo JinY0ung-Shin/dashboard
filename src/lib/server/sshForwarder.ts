@@ -580,7 +580,41 @@ export async function restoreSavedTunnels(): Promise<void> {
                                         const result = await setupSSHConnection(config.id!, config);
                                         if (result.success) {
                                                 console.log(`[PortKnox SSH] 터널 복원 성공: ${config.name}`);
-                                                saveTunnel(result.config!);
+
+                                                let litellmModelId = config.litellmModelId;
+
+                                                if (config.litellmEnabled && config.litellmModelName) {
+                                                        const bindAddress = config.localBindAddress || '127.0.0.1';
+                                                        const apiBase =
+                                                                config.litellmApiBase || `http://${bindAddress}:${config.localPort}/v1`;
+
+                                                        console.log(
+                                                                `[PortKnox LiteLLM] Restoring model: ${config.litellmModelName} at ${apiBase}`
+                                                        );
+
+                                                        const litellmResult = await addModelToLiteLLM({
+                                                                model_name: config.litellmModelName,
+                                                                litellm_params: {
+                                                                        model: `openai/${config.litellmModelName}`,
+                                                                        api_base: apiBase,
+                                                                        api_key: config.litellmApiKey || 'dummy',
+                                                                },
+                                                        });
+
+                                                        if (litellmResult.success && litellmResult.model) {
+                                                                litellmModelId =
+                                                                        litellmResult.model.model_info?.id || litellmResult.model.model_name;
+                                                                console.log(
+                                                                        `[PortKnox LiteLLM] Model restored successfully: ${litellmModelId}`
+                                                                );
+                                                        } else {
+                                                                console.error(
+                                                                        `[PortKnox LiteLLM] Failed to restore model: ${litellmResult.error}`
+                                                                );
+                                                        }
+                                                }
+
+                                                saveTunnel(result.config!, litellmModelId);
                                                 restored = true;
                                         } else {
                                                 console.error(
