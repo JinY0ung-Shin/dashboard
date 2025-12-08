@@ -3,6 +3,7 @@ import { spawn, type ChildProcess } from 'child_process';
 import { createConnection } from 'net';
 import db from './db';
 import { addModelToLiteLLM, deleteModelFromLiteLLM, listLiteLLMModels } from './litellmClient';
+import { checkLiteLLMHealth } from './litellmClient';
 interface ActiveForward {
 	config: SSHForwardConfig;
 	process: ChildProcess;
@@ -13,6 +14,100 @@ interface ActiveForward {
 const activeForwards = new Map<string, ActiveForward>();
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000;
+const MAX_LITELLM_ATTEMPTS = 5;
+const LITELLM_RETRY_DELAY = 1000;
+
+async function waitForLiteLLMReady(): Promise<boolean> {
+        let attempt = 0;
+
+        while (attempt < MAX_LITELLM_ATTEMPTS) {
+                attempt++;
+                const healthy = await checkLiteLLMHealth();
+
+                if (healthy) {
+                        return true;
+                }
+
+                console.warn(
+                        `[PortKnox LiteLLM] LiteLLM not ready (attempt ${attempt}/${MAX_LITELLM_ATTEMPTS}), retrying...`
+                );
+                await new Promise((resolve) => setTimeout(resolve, LITELLM_RETRY_DELAY));
+        }
+
+        console.error('[PortKnox LiteLLM] LiteLLM not ready after multiple attempts');
+        return false;
+}
+
+async function ensureModelRegistered(
+        config: SSHForwardConfig,
+        apiBase: string,
+        existingModelId?: string
+): Promise<string | undefined> {
+        if (!config.litellmEnabled || !config.litellmModelName) {
+                return existingModelId;
+        }
+
+        const litellmReady = await waitForLiteLLMReady();
+
+        if (!litellmReady) {
+                return existingModelId;
+        }
+
+        let attempt = 0;
+        let litellmModelId = existingModelId;
+
+        while (attempt < MAX_LITELLM_ATTEMPTS && !litellmModelId) {
+                attempt++;
+
+                const litellmModels = await listLiteLLMModels();
+                const existingModel =
+                        litellmModels.success && litellmModels.models
+                                ? litellmModels.models.find(
+                                          (model) =>
+                                                  model.model_name === config.litellmModelName ||
+                                                  model.model_id === config.litellmModelId ||
+                                                  model.model_info?.id === config.litellmModelId
+                                  )
+                                : undefined;
+
+                if (existingModel) {
+                        litellmModelId =
+                                existingModel.model_info?.id || existingModel.model_id || existingModel.model_name;
+                        console.log(
+                                `[PortKnox LiteLLM] Model already registered, skipping create: ${litellmModelId}`
+                        );
+                        break;
+                }
+
+                console.log(
+                        `[PortKnox LiteLLM] Registering model (attempt ${attempt}/${MAX_LITELLM_ATTEMPTS}): ${config.litellmModelName} at ${apiBase}`
+                );
+
+                const litellmResult = await addModelToLiteLLM({
+                        model_name: config.litellmModelName,
+                        litellm_params: {
+                                model: `openai/${config.litellmModelName}`,
+                                api_base: apiBase,
+                                api_key: config.litellmApiKey || 'dummy',
+                        },
+                });
+
+                if (litellmResult.success && litellmResult.model) {
+                        litellmModelId = litellmResult.model.model_info?.id || litellmResult.model.model_name;
+                        console.log(`[PortKnox LiteLLM] Model registered successfully: ${litellmModelId}`);
+                } else {
+                        console.error(
+                                `[PortKnox LiteLLM] Failed to register model (attempt ${attempt}/${MAX_LITELLM_ATTEMPTS}): ${litellmResult.error}`
+                        );
+
+                        if (attempt < MAX_LITELLM_ATTEMPTS) {
+                                await new Promise((resolve) => setTimeout(resolve, LITELLM_RETRY_DELAY));
+                        }
+                }
+        }
+
+        return litellmModelId;
+}
 
 function saveTunnel(config: SSHForwardConfig, litellmModelId?: string): void {
 	const description = `SSH Tunnel: ${config.name}`;
@@ -378,55 +473,16 @@ async function setupSSHConnection(id: string, config: SSHForwardConfig): Promise
 }
 
 export async function createSSHForward(config: SSHForwardConfig): Promise<SSHForwardResult> {
-	const id = config.id || generateId();
-	const result = await setupSSHConnection(id, { ...config, id });
+        const id = config.id || generateId();
+        const result = await setupSSHConnection(id, { ...config, id });
 
-	if (result.success) {
-		let litellmModelId: string | undefined;
+        if (result.success) {
+                const bindAddress = config.localBindAddress || '127.0.0.1';
+                const apiBase = `http://${bindAddress}:${config.localPort}/v1`;
+                const litellmModelId = await ensureModelRegistered(config, apiBase);
 
-                if (config.litellmEnabled && config.litellmModelName) {
-                        const bindAddress = config.localBindAddress || '127.0.0.1';
-                        const apiBase = `http://${bindAddress}:${config.localPort}/v1`;
-
-                        const litellmModels = await listLiteLLMModels();
-                        const existingModel =
-                                litellmModels.success && litellmModels.models
-                                        ? litellmModels.models.find(
-                                                  (model) =>
-                                                          model.model_name === config.litellmModelName ||
-                                                          model.model_id === config.litellmModelId ||
-                                                          model.model_info?.id === config.litellmModelId
-                                          )
-                                        : undefined;
-
-                        if (existingModel) {
-                                litellmModelId = existingModel.model_info?.id || existingModel.model_id || existingModel.model_name;
-                                console.log(
-                                        `[PortKnox LiteLLM] Model already registered, skipping create: ${litellmModelId}`
-                                );
-                        } else {
-                                console.log(`[PortKnox LiteLLM] Registering model: ${config.litellmModelName} at ${apiBase}`);
-
-                                const litellmResult = await addModelToLiteLLM({
-                                        model_name: config.litellmModelName,
-                                        litellm_params: {
-                                                model: `openai/${config.litellmModelName}`,
-                                                api_base: apiBase,
-                                                api_key: config.litellmApiKey || 'dummy',
-                                        },
-                                });
-
-                                if (litellmResult.success && litellmResult.model) {
-                                        litellmModelId = litellmResult.model.model_info?.id || litellmResult.model.model_name;
-                                        console.log(`[PortKnox LiteLLM] Model registered successfully: ${litellmModelId}`);
-                                } else {
-                                        console.error(`[PortKnox LiteLLM] Failed to register model: ${litellmResult.error}`);
-                                }
-                        }
-                }
-
-		saveTunnel(result.config!, litellmModelId);
-	}
+                saveTunnel(result.config!, litellmModelId);
+        }
 
 	return result;
 }
@@ -598,58 +654,13 @@ export async function restoreSavedTunnels(): Promise<void> {
                                         const result = await setupSSHConnection(config.id!, config);
                                         if (result.success) {
                                                 console.log(`[PortKnox SSH] 터널 복원 성공: ${config.name}`);
-                                                let litellmModelId: string | undefined = config.litellmModelId;
-
-                                                if (config.litellmEnabled && config.litellmModelName) {
-                                                        const bindAddress = config.localBindAddress || '127.0.0.1';
-                                                        const apiBase = `http://${bindAddress}:${config.localPort}/v1`;
-
-                                                        const litellmModels = await listLiteLLMModels();
-                                                        const existingModel =
-                                                                litellmModels.success && litellmModels.models
-                                                                        ? litellmModels.models.find(
-                                                                                  (model) =>
-                                                                                          model.model_name === config.litellmModelName ||
-                                                                                          model.model_id === config.litellmModelId ||
-                                                                                          model.model_info?.id === config.litellmModelId
-                                                                          )
-                                                                        : undefined;
-
-                                                        if (existingModel) {
-                                                                litellmModelId =
-                                                                        existingModel.model_info?.id ||
-                                                                        existingModel.model_id ||
-                                                                        existingModel.model_name;
-                                                                console.log(
-                                                                        `[PortKnox LiteLLM] Model already registered, skipping restore: ${litellmModelId}`
-                                                                );
-                                                        } else {
-                                                                console.log(
-                                                                        `[PortKnox LiteLLM] Restoring model: ${config.litellmModelName} at ${apiBase}`
-                                                                );
-
-                                                                const litellmResult = await addModelToLiteLLM({
-                                                                        model_name: config.litellmModelName,
-                                                                        litellm_params: {
-                                                                                model: `openai/${config.litellmModelName}`,
-                                                                                api_base: apiBase,
-                                                                                api_key: config.litellmApiKey || 'dummy',
-                                                                        },
-                                                                });
-
-                                                                if (litellmResult.success && litellmResult.model) {
-                                                                        litellmModelId =
-                                                                                litellmResult.model.model_info?.id || litellmResult.model.model_name;
-                                                                        console.log(
-                                                                                `[PortKnox LiteLLM] Model restored successfully: ${litellmModelId}`
-                                                                        );
-                                                                } else {
-                                                                        console.error(
-                                                                                `[PortKnox LiteLLM] Failed to restore model: ${litellmResult.error}`
-                                                                        );
-                                                                }
-                                                        }
-                                                }
+                                                const bindAddress = config.localBindAddress || '127.0.0.1';
+                                                const apiBase = `http://${bindAddress}:${config.localPort}/v1`;
+                                                const litellmModelId = await ensureModelRegistered(
+                                                        config,
+                                                        apiBase,
+                                                        config.litellmModelId
+                                                );
 
                                                 saveTunnel(result.config!, litellmModelId);
                                                 restored = true;
