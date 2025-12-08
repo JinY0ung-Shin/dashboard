@@ -26,22 +26,25 @@ export interface PortDescription {
 }
 
 export interface SSHForwardConfig {
-	id?: string;
-	name: string;
-	remoteHost: string;
-	remotePort: number;
-	localPort: number;
-	localBindAddress?: string; // '127.0.0.1' (localhost only) or '0.0.0.0' (all interfaces)
-	sshUser: string;
-	sshHost: string;
-	sshPort: number;
-	status?: 'active' | 'inactive' | 'error';
-	author?: string; // 터널을 등록한 사람
-	portUrl?: string;
-	// LiteLLM 자동 등록 옵션
-	litellmEnabled?: boolean;
-	litellmModelName?: string; // 사용자 지정 모델 이름
-	litellmApiKey?: string; // LLM API 키 (선택사항)
+        id?: string;
+        name: string;
+        remoteHost: string;
+        remotePort: number;
+        localPort: number;
+        localBindAddress?: string; // '127.0.0.1' (localhost only) or '0.0.0.0' (all interfaces)
+        sshUser: string;
+        sshHost: string;
+        sshPort: number;
+        status?: 'active' | 'inactive' | 'error';
+        author?: string; // 터널을 등록한 사람
+        tags?: string[];
+        portUrl?: string;
+        // LiteLLM 자동 등록 옵션
+        litellmEnabled?: boolean;
+        litellmModelName?: string; // 사용자 지정 모델 이름
+        litellmApiKey?: string; // LLM API 키 (선택사항)
+        litellmModelId?: string;
+        litellmApiBase?: string;
 }
 
 export interface SSHForwardResult {

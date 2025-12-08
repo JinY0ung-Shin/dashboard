@@ -65,7 +65,7 @@ db.exec(`
 
 // LiteLLM 컬럼 마이그레이션 (기존 DB에 컬럼이 없는 경우 추가)
 try {
-	const columns = db.pragma('table_info(ports)').map((col: any) => col.name);
+        const columns = (db.pragma('table_info(ports)') as { name: string }[]).map((col) => col.name);
 
 	if (!columns.includes('litellm_enabled')) {
 		console.log('[PortKnox] Adding LiteLLM columns to ports table...');
