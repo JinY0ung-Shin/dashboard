@@ -80,31 +80,77 @@ function deleteTunnel(id: string): void {
 }
 
 function loadSavedTunnels(): SSHForwardConfig[] {
-	try {
-		const stmt = db.prepare(`
-			SELECT
-				ssh_tunnel_id as id,
-				ssh_tunnel_name as name,
-				ssh_remote_host as remoteHost,
-				ssh_remote_port as remotePort,
-				port as localPort,
-				ssh_local_bind_address as localBindAddress,
-				ssh_user as sshUser,
-				ssh_host as sshHost,
-				ssh_port as sshPort,
-				author,
-				ssh_status as status
-			FROM ports
-			WHERE ssh_tunnel_id IS NOT NULL
-			ORDER BY created_at
-		`);
+        try {
+                const stmt = db.prepare(`
+                        SELECT
+                                ssh_tunnel_id as id,
+                                ssh_tunnel_name as name,
+                                ssh_remote_host as remoteHost,
+                                ssh_remote_port as remotePort,
+                                port as localPort,
+                                ssh_local_bind_address as localBindAddress,
+                                ssh_user as sshUser,
+                                ssh_host as sshHost,
+                                ssh_port as sshPort,
+                                author,
+                                ssh_status as status,
+                                tags,
+                                litellm_enabled as litellmEnabled,
+                                litellm_model_id as litellmModelId,
+                                litellm_model_name as litellmModelName,
+                                litellm_api_base as litellmApiBase
+                        FROM ports
+                        WHERE ssh_tunnel_id IS NOT NULL
+                        ORDER BY created_at
+                `);
 
-		const tunnels = stmt.all() as SSHForwardConfig[];
-		return tunnels;
-	} catch (error) {
-		console.error('Error loading SSH tunnels:', error);
-		return [];
-	}
+                type SavedTunnelRow = {
+                        id: string;
+                        name: string;
+                        remoteHost: string;
+                        remotePort: number;
+                        localPort: number;
+                        localBindAddress?: string | null;
+                        sshUser: string;
+                        sshHost: string;
+                        sshPort: number;
+                        author?: string | null;
+                        status?: 'active' | 'inactive' | 'error' | null;
+                        tags?: string | null;
+                        litellmEnabled?: number;
+                        litellmModelId?: string | null;
+                        litellmModelName?: string | null;
+                        litellmApiBase?: string | null;
+                };
+
+                const tunnels = (stmt.all() as SavedTunnelRow[]).map((row) => {
+                        let parsedTags: string[] | undefined;
+                        if (row.tags) {
+                                try {
+                                        parsedTags = JSON.parse(row.tags);
+                                } catch (error) {
+                                        console.error('Failed to parse tunnel tags:', error);
+                                }
+                        }
+
+                        return {
+                                ...row,
+                                tags: parsedTags,
+                                litellmEnabled: Boolean(row.litellmEnabled),
+                                litellmModelId: row.litellmModelId || undefined,
+                                litellmModelName: row.litellmModelName || undefined,
+                                litellmApiBase: row.litellmApiBase || undefined,
+                                author: row.author || undefined,
+                                localBindAddress: row.localBindAddress || undefined,
+                                status: row.status || undefined,
+                        } as SSHForwardConfig;
+                });
+
+                return tunnels;
+        } catch (error) {
+                console.error('Error loading SSH tunnels:', error);
+                return [];
+        }
 }
 
 function generateId(): string {
@@ -509,30 +555,55 @@ export function getForwardById(id: string): SSHForwardConfig | undefined {
 }
 
 export async function restoreSavedTunnels(): Promise<void> {
-	try {
-		const savedTunnels = loadSavedTunnels();
-		console.log(`[PortKnox SSH] 저장된 터널 ${savedTunnels.length}개 복원 중...`);
+        try {
+                const savedTunnels = loadSavedTunnels();
+                console.log(`[PortKnox SSH] 저장된 터널 ${savedTunnels.length}개 복원 중...`);
 
 		if (savedTunnels.length === 0) {
 			console.log(`[PortKnox SSH] 복원할 터널이 없습니다`);
 			return;
 		}
 
-		for (const config of savedTunnels) {
-			try {
-				const result = await setupSSHConnection(config.id!, config);
-				if (result.success) {
-					console.log(`[PortKnox SSH] 터널 복원 성공: ${config.name}`);
-					saveTunnel(result.config!);
-				} else {
-					console.error(`[PortKnox SSH] 터널 복원 실패: ${config.name} - ${result.message}`);
-				}
-			} catch (error) {
-				console.error(`[PortKnox SSH] 터널 복원 중 예외 발생: ${config.name}`, error);
-			}
+                const MAX_RESTORE_ATTEMPTS = 3;
+                const RESTORE_RETRY_DELAY = 2000;
 
-			await new Promise((resolve) => setTimeout(resolve, 500));
-		}
+                for (const config of savedTunnels) {
+                        let attempt = 0;
+                        let restored = false;
+
+                        while (attempt < MAX_RESTORE_ATTEMPTS && !restored) {
+                                attempt++;
+                                try {
+                                        const result = await setupSSHConnection(config.id!, config);
+                                        if (result.success) {
+                                                console.log(`[PortKnox SSH] 터널 복원 성공: ${config.name}`);
+                                                saveTunnel(result.config!);
+                                                restored = true;
+                                        } else {
+                                                console.error(
+                                                        `[PortKnox SSH] 터널 복원 실패 (시도 ${attempt}/${MAX_RESTORE_ATTEMPTS}): ${config.name} - ${result.message}`
+                                                );
+                                                if (attempt < MAX_RESTORE_ATTEMPTS) {
+                                                        await new Promise((resolve) => setTimeout(resolve, RESTORE_RETRY_DELAY));
+                                                }
+                                        }
+                                } catch (error) {
+                                        console.error(
+                                                `[PortKnox SSH] 터널 복원 중 예외 발생 (시도 ${attempt}/${MAX_RESTORE_ATTEMPTS}): ${config.name}`,
+                                                error
+                                        );
+                                        if (attempt < MAX_RESTORE_ATTEMPTS) {
+                                                await new Promise((resolve) => setTimeout(resolve, RESTORE_RETRY_DELAY));
+                                        }
+                                }
+                        }
+
+                        if (!restored) {
+                                console.error(`[PortKnox SSH] 터널 복원 실패 (최대 시도 초과): ${config.name}`);
+                        }
+
+                        await new Promise((resolve) => setTimeout(resolve, 500));
+                }
 
 		console.log(`[PortKnox SSH] 터널 복원 완료`);
 	} catch (error) {
