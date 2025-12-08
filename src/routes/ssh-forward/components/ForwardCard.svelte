@@ -28,7 +28,7 @@
 				{/if}
 			</div>
 			<div class="text-xs text-slate-500 font-mono">
-				{forward.sshUser}@{forward.sshHost}
+				{forward.sshHost}
 			</div>
 			{#if forward.author}
 				<div class="text-[10px] text-slate-600 mt-0.5">
