@@ -104,20 +104,12 @@
         {#if forward.litellmEnabled}
                 <div class="flex items-center gap-2 mb-2 text-xs">
                         <button
-                                class="px-2 py-1 rounded bg-amber-900 text-amber-200 border border-amber-700 hover:bg-amber-800 disabled:opacity-60"
+                                class="px-2 py-1 rounded bg-blue-900 text-white-200 border border-blue-700 hover:bg-white-800 disabled:opacity-60"
                                 on:click={checkHealth}
                                 disabled={healthStatus === 'checking'}
                         >
                                 {healthStatus === 'checking' ? 'Checking...' : 'Check LLM Health'}
                         </button>
-                        <a
-                                href={healthUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                class="text-amber-200 hover:text-amber-100 underline"
-                        >
-                                {healthUrl}
-                        </a>
                 </div>
                 {#if healthStatus !== 'idle'}
                         <div
