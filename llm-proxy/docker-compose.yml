@@ -33,8 +33,15 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
     command: ['--config', '/app/config.yaml', '--port', '${LITELLM_PORT:-4000}', '--detailed_debug']
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
 networks:
   litellm-network:
     driver: bridge
+
+# Usage:
+# - Standalone: docker-compose up -d
+# - With PortKnox: cd .. && docker-compose up -d (runs both services)
