@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  portknox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: portknox
+    ports:
+      - '${PORTKNOX_PORT:-3000}:3000'
+    volumes:
+      # Mount data directory for SQLite persistence
+      - ./data:/app/data
+      # Mount SSH keys for SSH tunneling (read-only)
+      - ~/.ssh:/root/.ssh:ro
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3000
+      # LiteLLM configuration
+      - LITELLM_BASE_URL=${LITELLM_BASE_URL:-http://host.docker.internal:4000}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234}
+    extra_hosts:
+      # Allow container to access host services
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# To run with LiteLLM proxy together, use:
+# docker-compose -f docker-compose.yml -f llm-proxy/docker-compose.yml up -d

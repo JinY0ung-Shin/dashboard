@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+
+# Build output
+build
+.svelte-kit
+
+# Data (mounted as volume)
+data
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# LiteLLM proxy (separate container)
+llm-proxy
+
+# Documentation
+*.md
+!README.md
+
+# Misc
+.DS_Store
+Thumbs.db
