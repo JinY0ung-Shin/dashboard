@@ -20,8 +20,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (use npx to ensure vite is found from node_modules)
+RUN npx vite build
 
 # Prune devDependencies
 RUN npm prune --production
