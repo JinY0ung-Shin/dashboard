@@ -2,10 +2,14 @@
 # Multi-stage build for better-sqlite3 native module
 
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 # Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -25,10 +29,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Production stage
-FROM node:20-alpine AS production
-
-# Install runtime dependencies for better-sqlite3
-RUN apk add --no-cache libstdc++
+FROM node:20-slim AS production
 
 WORKDIR /app
 
