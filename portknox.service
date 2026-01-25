@@ -1,0 +1,28 @@
+[Unit]
+Description=PortKnox - Port Management & SSH Tunnel Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/user/PortKnox
+ExecStart=/opt/node22/bin/node build
+Restart=on-failure
+RestartSec=5
+
+# Environment variables
+Environment=NODE_ENV=production
+Environment=HOST=0.0.0.0
+Environment=PORT=3000
+
+# LiteLLM configuration (optional)
+# Environment=LITELLM_BASE_URL=http://localhost:4000
+# Environment=LITELLM_MASTER_KEY=sk-1234
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=portknox
+
+[Install]
+WantedBy=multi-user.target
